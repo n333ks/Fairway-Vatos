@@ -563,7 +563,7 @@ async function startRound() {
       scorekeeperUid: currentUser.uid,
       participants,
       createdBy: currentUser.uid,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: new Date().toISOString(),
       status: 'active'
     });
     listenToRound(key);

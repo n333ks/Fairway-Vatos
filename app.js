@@ -675,21 +675,6 @@ function fmtCell(s, par) {
   return `${s}`;
 }
 
-/* ════════════════════════════════
-   THEME TOGGLE
-════════════════════════════════ */
-function applyTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  localStorage.setItem('hog_theme', t);
-  const btn = document.getElementById('theme-btn');
-  if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
-}
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme')
-    || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  applyTheme(current === 'dark' ? 'light' : 'dark');
-}
 
 /* ════════════════════════════════
    ROUND HISTORY
@@ -887,13 +872,6 @@ function viewRound(id) {
 (function init() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
-  }
-  const saved = localStorage.getItem('hog_theme');
-  if (saved) {
-    applyTheme(saved);
-  } else {
-    const btn = document.getElementById('theme-btn');
-    if (btn) btn.textContent = matchMedia('(prefers-color-scheme: dark)').matches ? '☀️' : '🌙';
   }
   renderCourses();
 })();

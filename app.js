@@ -869,9 +869,36 @@ function viewRound(id) {
 /* ════════════════════════════════
    INIT
 ════════════════════════════════ */
+function renderHomeRecent() {
+  const el   = document.getElementById('home-recent');
+  if (!el) return;
+  const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
+  if (!hist.length) { el.innerHTML = ''; return; }
+  const r    = hist[0];
+  const d    = new Date(r.date);
+  const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  const pills = r.players.map((name, i) => {
+    const m   = r.money[i];
+    const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
+    const amt = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
+    return `<span class="history-money-pill ${cls}">${name} ${amt}</span>`;
+  }).join('');
+  el.innerHTML = `
+    <div class="home-recent-card" onclick="viewRound(${r.id}); show('sc-history-detail')">
+      <div class="home-recent-hdr">
+        <span class="home-recent-label">Recent Round</span>
+        <span class="home-recent-chevron">›</span>
+      </div>
+      <div class="home-recent-course">${r.course}</div>
+      <div class="home-recent-meta">${date} · ${r.tee} tees · $${r.stake}/hole</div>
+      <div class="home-recent-pills">${pills}</div>
+    </div>`;
+}
+
 (function init() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
   renderCourses();
+  renderHomeRecent();
 })();

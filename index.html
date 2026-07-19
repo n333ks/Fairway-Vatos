@@ -7,8 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Fairway Vatos">
 <link rel="apple-touch-icon" href="app_icon.png">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2F2F7">
-<meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#000000">
+<meta name="theme-color" content="#F2F2F7">
 <title>Fairway Vatos</title>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="styles.css">
@@ -16,31 +15,73 @@
 <body>
 
 <!-- ════════════════════════════════
-     SCREEN 1 — COURSE SELECT
+     SCREEN 1 — HOME
 ════════════════════════════════ -->
-<div class="screen active" id="sc-course">
+<div class="screen active" id="sc-home">
+  <div class="home-safe-top"></div>
+  <div class="home-hero">
+    <img src="icon.png" alt="Fairway Vatos" class="hero-logo">
+  </div>
+  <div class="home-body">
+
+    <!-- Primary action -->
+    <button class="home-primary-btn" onclick="show('sc-courses')">
+      <div class="home-primary-icon">⛳</div>
+      <div class="home-primary-text">
+        <div class="home-primary-title">Start a Round</div>
+        <div class="home-primary-sub">Choose course, players &amp; stake</div>
+      </div>
+      <div class="home-primary-chevron">›</div>
+    </button>
+
+    <!-- Secondary actions -->
+    <div class="home-sec-grid">
+      <button class="home-sec-btn" onclick="showHistory()">
+        <div class="home-sec-icon">📋</div>
+        <div class="home-sec-label">History</div>
+      </button>
+      <button class="home-sec-btn" style="opacity:.4;pointer-events:none">
+        <div class="home-sec-icon">👥</div>
+        <div class="home-sec-label">Friends</div>
+        <div class="home-sec-soon">Soon</div>
+      </button>
+    </div>
+
+    <!-- Recent round -->
+    <div id="home-recent"></div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 2 — COURSES
+════════════════════════════════ -->
+<div class="screen" id="sc-courses">
   <div class="nav-bar">
     <div class="nav-row">
-      <div class="nav-title">Select a Course</div>
-      <button class="nav-btn" onclick="showHistory()">History</button>
+      <button class="nav-btn" onclick="show('sc-home')">← Home</button>
+      <div class="nav-center">
+        <div class="nav-title">Select a Course</div>
+      </div>
+      <div style="width:60px"></div>
     </div>
-  </div>
-  <div class="app-hero">
-    <img src="icon.png" alt="Fairway Vatos" class="hero-logo">
   </div>
   <div class="content" id="course-list" style="padding-bottom:16px"></div>
 </div>
 
 <!-- ════════════════════════════════
-     SCREEN 2 — SETUP
+     SCREEN 3 — SETUP
 ════════════════════════════════ -->
 <div class="screen" id="sc-setup">
   <div class="nav-bar">
     <div class="nav-row">
-      <div class="nav-title">New Round</div>
-      <button class="nav-btn" onclick="show('sc-course')">← Courses</button>
+      <button class="nav-btn" onclick="show('sc-courses')">← Courses</button>
+      <div class="nav-center">
+        <div class="nav-title">New Round</div>
+        <div class="nav-sub" id="setup-sub"></div>
+      </div>
+      <div style="width:60px"></div>
     </div>
-    <div class="nav-sub" id="setup-sub"></div>
   </div>
   <div class="content">
     <div class="section">
@@ -69,7 +110,7 @@
 </div>
 
 <!-- ════════════════════════════════
-     SCREEN 3 — ROUND
+     SCREEN 4 — ROUND
 ════════════════════════════════ -->
 <div class="screen" id="sc-round">
   <div class="nav-bar" id="round-nav">
@@ -83,12 +124,10 @@
     </div>
   </div>
 
-  <!-- Holes tab -->
   <div style="display:none;flex-direction:column;flex:1;overflow-y:auto" id="tab-holes-wrap">
     <div id="holes-body" style="padding-bottom:24px"></div>
   </div>
 
-  <!-- Totals tab -->
   <div style="display:none;flex:1;overflow-y:auto" id="tab-totals-wrap">
     <div style="padding-bottom:32px">
       <div class="money-grid" id="money-grid"></div>
@@ -106,19 +145,19 @@
     <button class="tab-btn" id="tb-totals" onclick="showTab('totals')">
       <span class="ti">💰</span>Totals
     </button>
-    <button class="tab-btn" onclick="show('sc-course')">
-      <span class="ti">＋</span>New
+    <button class="tab-btn" onclick="show('sc-home')">
+      <span class="ti">⌂</span>Home
     </button>
   </div>
 </div>
 
 <!-- ════════════════════════════════
-     SCREEN 4 — HISTORY
+     SCREEN 5 — HISTORY
 ════════════════════════════════ -->
 <div class="screen" id="sc-history">
   <div class="nav-bar">
     <div class="nav-row">
-      <button class="nav-btn" onclick="show('sc-course')">← Back</button>
+      <button class="nav-btn" onclick="show('sc-home')">← Home</button>
       <div class="nav-center">
         <div class="nav-title">Round History</div>
       </div>
@@ -129,7 +168,7 @@
 </div>
 
 <!-- ════════════════════════════════
-     SCREEN 5 — HISTORY DETAIL
+     SCREEN 6 — HISTORY DETAIL
 ════════════════════════════════ -->
 <div class="screen" id="sc-history-detail">
   <div class="nav-bar">
@@ -137,7 +176,7 @@
       <button class="nav-btn" onclick="show('sc-history')">← History</button>
       <div class="nav-center">
         <div class="nav-title" id="detail-title">Round</div>
-        <div class="nav-sub"  id="detail-sub"></div>
+        <div class="nav-sub" id="detail-sub"></div>
       </div>
       <div style="width:60px"></div>
     </div>

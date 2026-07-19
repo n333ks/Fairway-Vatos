@@ -83,8 +83,8 @@ function generateJoinCode() {
 function codeKey(code) { return code.replace('-', ''); }
 
 // Firestore doesn't support nested arrays — convert to/from keyed objects
-function scoresToFS(arr)  { const o = {}; arr.forEach((r, i) => o[i] = r); return o; }
-function touchedToFS(arr) { const o = {}; arr.forEach((r, i) => o[i] = r); return o; }
+function scoresToFS(arr)  { const o = {}; arr.forEach((r, i) => o[i] = [...r]); return o; }
+function touchedToFS(arr) { const o = {}; arr.forEach((r, i) => o[i] = [...r]); return o; }
 function fsToScores(o)    { return Object.keys(o).sort((a,b)=>+a - +b).map(k => o[k]); }
 function fsToTouched(o)   { return Object.keys(o).sort((a,b)=>+a - +b).map(k => o[k]); }
 
@@ -97,8 +97,11 @@ function syncToFirestore() {
 
 function listenToRound(key) {
   if (roundListener) { roundListener(); roundListener = null; }
-  roundListener = db.collection('activeRounds').doc(key).onSnapshot(snap => {
+  roundListener = db.collection('activeRounds').doc(key).onSnapshot(
+  { includeMetadataChanges: true },
+  snap => {
     if (!snap.exists) return;
+    if (snap.metadata.fromCache) return; // skip stale local cache
     const d = snap.data();
 
     participants = d.participants || {};

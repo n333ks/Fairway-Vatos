@@ -234,6 +234,32 @@ function renderPlayerInputs() {
     </div>`).join('');
 }
 
+function saveSession() {
+  if (!players.length) return;
+  localStorage.setItem('hog_session', JSON.stringify({
+    cIdx, tIdx, players, stake, scores, holes, touched, currentHole, currentRoundId
+  }));
+}
+
+function clearSession() {
+  localStorage.removeItem('hog_session');
+}
+
+function hasActiveSession() {
+  return !!localStorage.getItem('hog_session');
+}
+
+function continueRound() {
+  const s = JSON.parse(localStorage.getItem('hog_session'));
+  if (!s) return;
+  cIdx = s.cIdx; tIdx = s.tIdx; players = s.players; stake = s.stake;
+  scores = s.scores; holes = s.holes; touched = s.touched;
+  currentHole = s.currentHole; currentRoundId = s.currentRoundId;
+  showTab('holes');
+  renderHoles();
+  show('sc-round');
+}
+
 function startRound() {
   const inputs = document.querySelectorAll('#player-inputs input');
   players = [0,1,2,3].map(i => inputs[i].value.trim() || 'Player ' + (i+1));
@@ -243,6 +269,7 @@ function startRound() {
   touched = Array.from({length:18}, () => players.map(() => false));
   currentHole    = 0;
   currentRoundId = null;
+  clearSession();
   showTab('holes');
   renderHoles();
   show('sc-round');
@@ -527,6 +554,7 @@ function adjScore(h, p, d) {
   if (sb) { sb.textContent = b.txt; sb.className = 'sc-badge ' + b.cls; }
 
   if (touched[h].every(t => t)) recomputeAll();
+  saveSession();
   renderHoles();
   renderMiniScorecard();
 }
@@ -539,12 +567,14 @@ function setType(h, type) {
     holes[h].partner = ord(cs[h].betHole)[1];
   }
   if (touched[h].every(t => t)) recomputeAll();
+  saveSession();
   renderHoles();
 }
 
 function setPartner(h, idx) {
   holes[h].partner = idx;
   if (touched[h].every(t => t)) recomputeAll();
+  saveSession();
   renderHoles();
 }
 
@@ -570,64 +600,76 @@ function renderTotals() {
     </div>`;
   }).join('');
 
-  let thead = '<thead><tr><th class="stk">Player</th>';
-  for (let h = 0; h < 9;  h++) thead += `<th>${h+1}</th>`;
-  thead += '<th class="sep">Out</th>';
-  for (let h = 9; h < 18; h++) thead += `<th>${h+1}</th>`;
-  thead += '<th class="sep">In</th><th class="sep">Tot</th></tr></thead>';
+  function buildHalf(startH, endH, label, totalLabel) {
+    const halfPar = par.slice(startH, endH).reduce((a, b) => a + b, 0);
+    let thead2 = `<thead><tr><th class="stk">Player</th>`;
+    for (let h = startH; h < endH; h++) thead2 += `<th>${h+1}</th>`;
+    thead2 += `<th class="sep">${totalLabel}</th></tr></thead>`;
 
-  let tbody = '<tbody>';
-  tbody += '<tr class="par-row"><td class="stk">Par</td>';
-  par.slice(0,9).forEach(p => tbody += `<td>${p}</td>`);
-  tbody += `<td class="sep">${pout}</td>`;
-  par.slice(9).forEach(p => tbody += `<td>${p}</td>`);
-  tbody += `<td class="sep">${pin}</td><td class="sep">${pout+pin}</td></tr>`;
+    let tbody2 = '<tbody>';
+    tbody2 += `<tr class="par-row"><td class="stk">Par</td>`;
+    par.slice(startH, endH).forEach(p => tbody2 += `<td>${p}</td>`);
+    tbody2 += `<td class="sep">${halfPar}</td></tr>`;
 
-  players.forEach((name, p) => {
+    players.forEach((name, p) => {
+      const sc   = scores.map(h => h[p]);
+      const half = sc.slice(startH, endH).reduce((a, v) => a + (v ?? 0), 0);
+      const enteredHalf = sc.slice(startH, endH).filter(v => v !== null);
+      const halfDisp = enteredHalf.length ? half : '—';
+
+      tbody2 += `<tr><td class="stk">${name}</td>`;
+      for (let h = startH; h < endH; h++) {
+        if (sc[h] === null) { tbody2 += `<td style="color:var(--tx3)">—</td>`; continue; }
+        const ch = cs[h], hole = holes[h];
+        const o  = ord(ch.betHole);
+        const fi = ch.carry ? ch.f : o[0];
+        const pi = ch.carry ? ch.p : (hole.partner !== null ? hole.partner : o[1]);
+        const tp = ch.carry ? ch.t : hole.type;
+        const t1 = tp === 'hog' ? [fi] : tp === '2v2' ? [fi, pi] : [];
+        const onWinTeam  = hole.result === 'win'  && t1.includes(p);
+        const onLoseTeam = (hole.result === 'lose' && t1.includes(p)) ||
+                           (hole.result === 'win'  && t1.length > 0 && !t1.includes(p));
+        const onTie      = hole.result === 'tie' && tp;
+        const bg = onWinTeam  ? 'background:rgba(50,215,75,0.12)'  :
+                   onLoseTeam ? 'background:rgba(255,69,58,0.12)'  :
+                   onTie      ? 'background:rgba(255,159,10,0.12)' : '';
+        tbody2 += `<td style="${bg}">${fmtCell(sc[h], par[h])}</td>`;
+      }
+      tbody2 += `<td class="sep">${halfDisp}</td></tr>`;
+    });
+
+    // Total row
+    tbody2 += `<tr class="par-row"><td class="stk">Tot</td>`;
+    for (let h = startH; h < endH; h++) tbody2 += `<td></td>`;
+    const totalPar = par.slice(startH, endH).reduce((a,b)=>a+b,0);
+    players.forEach((name, p) => {/* totals printed below */});
+    tbody2 += `<td class="sep"></td></tr>`;
+    tbody2 += '</tbody>';
+    return `<div class="sc-half-label">${label}</div><div class="sc-wrap"><table class="sct">${thead2}${tbody2}</table></div>`;
+  }
+
+  // Totals summary row (below both halves)
+  const playerTotals = players.map((name, p) => {
     const sc  = scores.map(h => h[p]);
-    const out = sc.slice(0,9).reduce((a, v) => a + (v ?? 0), 0);
-    const inp = sc.slice(9).reduce((a, v)  => a + (v ?? 0), 0);
+    const out = sc.slice(0,9).reduce((a,v)=>a+(v??0),0);
+    const inp = sc.slice(9).reduce((a,v)=>a+(v??0),0);
     const tot = out + inp;
-    const enteredAll = sc.filter(v => v !== null);
-    const enteredPar = enteredAll.length > 0
-      ? par.filter((_, h) => sc[h] !== null).reduce((a,b) => a+b, 0) : 0;
-    const diff = enteredAll.length ? tot - enteredPar : 0;
-    const diffStr   = enteredAll.length === 0 ? '—' : diff === 0 ? 'E' : (diff > 0 ? '+' : '') + diff;
+    const entered = sc.filter(v => v !== null);
+    const enteredPar = entered.length ? par.filter((_,h)=>sc[h]!==null).reduce((a,b)=>a+b,0) : 0;
+    const diff = entered.length ? tot - enteredPar : 0;
+    const diffStr = entered.length === 0 ? '—' : diff === 0 ? 'E' : (diff > 0 ? '+' : '') + diff;
     const diffColor = diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--red)' : 'var(--tx2)';
+    return `<div class="sc-total-row">
+      <span class="sc-total-name">${name}</span>
+      <span class="sc-total-val">${entered.length ? tot : '—'}</span>
+      <span class="sc-total-diff" style="color:${diffColor}">${diffStr}</span>
+    </div>`;
+  }).join('');
 
-    function cell(h) {
-      if (sc[h] === null) return `<td style="color:var(--tx3)">—</td>`;
-      const ch = cs[h], hole = holes[h];
-      const o  = ord(ch.betHole);
-      const fi = ch.carry ? ch.f : o[0];
-      const pi = ch.carry ? ch.p : (hole.partner !== null ? hole.partner : o[1]);
-      const tp = ch.carry ? ch.t : hole.type;
-      const t1 = tp === 'hog' ? [fi] : tp === '2v2' ? [fi, pi] : [];
-      const onWinTeam  = hole.result === 'win'  && t1.includes(p);
-      const onLoseTeam = (hole.result === 'lose' && t1.includes(p)) ||
-                         (hole.result === 'win'  && t1.length > 0 && !t1.includes(p));
-      const onTie      = hole.result === 'tie' && tp;
-      const bg = onWinTeam  ? 'background:rgba(50,215,75,0.12)'  :
-                 onLoseTeam ? 'background:rgba(255,69,58,0.12)'  :
-                 onTie      ? 'background:rgba(255,159,10,0.12)' : '';
-      return `<td style="${bg}">${fmtCell(sc[h], par[h])}</td>`;
-    }
-
-    const outDisp = sc.slice(0,9).some(v => v !== null) ? out : '—';
-    const inpDisp = sc.slice(9).some(v  => v !== null) ? inp : '—';
-    const totDisp = enteredAll.length ? tot : '—';
-
-    tbody += `<tr><td class="stk">${name}</td>`;
-    for (let h = 0; h < 9;  h++) tbody += cell(h);
-    tbody += `<td class="sep">${outDisp}</td>`;
-    for (let h = 9; h < 18; h++) tbody += cell(h);
-    tbody += `<td class="sep">${inpDisp}</td>`;
-    tbody += `<td class="sep" style="font-weight:700">${totDisp}<br>
-      <span style="font-size:10px;color:${diffColor}">${diffStr}</span></td>`;
-    tbody += '</tr>';
-  });
-  tbody += '</tbody>';
-  document.getElementById('sc-table').innerHTML = thead + tbody;
+  document.getElementById('sc-table').innerHTML =
+    buildHalf(0, 9, 'Front Nine', 'Out') +
+    buildHalf(9, 18, 'Back Nine', 'In') +
+    `<div class="sc-totals-summary">${playerTotals}</div>`;
 
   let hr = '';
   for (let h = 0; h < 18; h++) {
@@ -713,6 +755,7 @@ function saveRound() {
 
 function deleteRound(id, e) {
   e.stopPropagation();
+  if (!confirm('Delete this round? This cannot be undone.')) return;
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
   localStorage.setItem('hog_rounds', JSON.stringify(hist.filter(r => r.id !== id)));
   showHistory();
@@ -957,32 +1000,109 @@ function calcBestCount(n) {
 }
 
 /* ════════════════════════════════
+   LEADERBOARD
+════════════════════════════════ */
+function showLeaderboard() {
+  const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
+  const el   = document.getElementById('leaderboard-body');
+
+  if (!hist.length) {
+    el.innerHTML = `<div class="history-empty">No rounds saved yet.<br>Finish a round to start the leaderboard.</div>`;
+    show('sc-leaderboard');
+    return;
+  }
+
+  // Aggregate per player: total money, rounds played, wins (holes won)
+  const stats = {};
+  hist.forEach(r => {
+    r.players.forEach((name, i) => {
+      if (!stats[name]) stats[name] = { money: 0, rounds: 0, wins: 0, losses: 0 };
+      stats[name].money  += r.money[i];
+      stats[name].rounds += 1;
+      // count hole wins from holes array
+      if (r.holes) {
+        r.holes.forEach(h => {
+          if (h.result === 'win')  stats[name].wins   += 1;
+          if (h.result === 'lose') stats[name].losses += 1;
+        });
+      }
+    });
+  });
+
+  const sorted = Object.entries(stats).sort((a, b) => b[1].money - a[1].money);
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  const rows = sorted.map(([name, s], idx) => {
+    const cls    = s.money > 0 ? 'pos' : s.money < 0 ? 'neg' : 'neu';
+    const disp   = (s.money >= 0 ? '+' : '−') + '$' + Math.abs(s.money).toFixed(2);
+    const avg    = s.rounds ? (s.money / s.rounds) : 0;
+    const avgDisp = (avg >= 0 ? '+' : '−') + '$' + Math.abs(avg).toFixed(2);
+    const medal  = medals[idx] || `${idx + 1}.`;
+    return `<div class="lb-row">
+      <div class="lb-rank">${medal}</div>
+      <div class="lb-info">
+        <div class="lb-name">${name}</div>
+        <div class="lb-meta">${s.rounds} round${s.rounds !== 1 ? 's' : ''} · ${avgDisp}/round</div>
+      </div>
+      <div class="lb-money ${cls}">${disp}</div>
+    </div>`;
+  }).join('');
+
+  const totalRounds = hist.length;
+  el.innerHTML = `
+    <div class="lb-subtitle">${totalRounds} round${totalRounds !== 1 ? 's' : ''} played · all-time net winnings</div>
+    <div class="lb-list">${rows}</div>`;
+
+  show('sc-leaderboard');
+}
+
+/* ════════════════════════════════
    INIT
 ════════════════════════════════ */
 function renderHomeRecent() {
   const el   = document.getElementById('home-recent');
   if (!el) return;
+  let html = '';
+
+  // Continue Round banner
+  if (hasActiveSession()) {
+    const s = JSON.parse(localStorage.getItem('hog_session'));
+    const courseName = COURSES[s.cIdx] ? COURSES[s.cIdx].sub : 'Round';
+    const tee = COURSES[s.cIdx] ? COURSES[s.cIdx].tees[s.tIdx].n : '';
+    const holesIn = s.touched.filter(h => h.every(t => t)).length;
+    html += `<button class="home-continue-btn" onclick="continueRound()">
+      <div class="home-continue-left">
+        <div class="home-continue-title">⛳ Continue Round</div>
+        <div class="home-continue-sub">${courseName} · ${tee} tees · Hole ${holesIn + 1} of 18</div>
+      </div>
+      <div class="home-primary-chevron">›</div>
+    </button>`;
+  }
+
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
-  if (!hist.length) { el.innerHTML = ''; return; }
-  const r    = hist[0];
-  const d    = new Date(r.date);
-  const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-  const pills = r.players.map((name, i) => {
-    const m   = r.money[i];
-    const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
-    const amt = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
-    return `<span class="history-money-pill ${cls}">${name} ${amt}</span>`;
-  }).join('');
-  el.innerHTML = `
-    <div class="home-recent-card" onclick="viewRound(${r.id}); show('sc-history-detail')">
+  if (hist.length) {
+    const r    = hist[0];
+    const d    = new Date(r.date);
+    const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    const pills = r.players.map((name, i) => {
+      const m   = r.money[i];
+      const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
+      const amt = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
+      return `<span class="history-money-pill ${cls}">${name} ${amt}</span>`;
+    }).join('');
+    html += `<div class="home-recent-card" onclick="viewRound(${r.id}); show('sc-history-detail')">
       <div class="home-recent-hdr">
         <span class="home-recent-label">Recent Round</span>
         <span class="home-recent-chevron">›</span>
       </div>
-      <div class="home-recent-course">${r.course}</div>
+      <div class="home-recent-course">${r.courseSub || r.course}</div>
       <div class="home-recent-meta">${date} · ${r.tee} tees · $${r.stake}/hole</div>
       <div class="home-recent-pills">${pills}</div>
     </div>`;
+  }
+
+  el.innerHTML = html;
 }
 
 (function init() {

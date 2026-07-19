@@ -810,7 +810,9 @@ function renderTotals() {
     const t1Names = `${players[fi]} + ${players[pi]}`;
     const t2Names = teamBNames(o, fi, pi);
     let teams;
-    if (tp === 'hog') {
+    if (r === 'tie') {
+      teams = `🔄 Carryover`;
+    } else if (tp === 'hog') {
       teams = `🐷 ${players[fi]} vs all`;
     } else if (r === 'win') {
       teams = `🏆 ${t1Names}`;
@@ -821,7 +823,7 @@ function renderTotals() {
     }
 
     const badge = r === 'win' ? 'win' : r === 'lose' ? 'lose' : r === 'tie' ? 'tie' : 'pend';
-    const label = r === 'win' ? 'Win' : r === 'lose' ? 'Lose' : r === 'tie' ? '🔄 Carry' : '—';
+    const label = r === 'win' ? 'Win' : r === 'lose' ? 'Lose' : r === 'tie' ? 'Tie' : '—';
 
     let moneyStr = '—';
     if (r === 'win')  moneyStr = tp === 'hog' ? `+$${(stake*ch.n*3).toFixed(2)}` : `+$${s}`;
@@ -1041,11 +1043,16 @@ function viewRound(id) {
     const pi=ch.carry?ch.p:(hole.partner!==null?hole.partner:o[1]);
     const s=(r.stake*ch.n).toFixed(2);
     const re=hole.result;
-    const teams=tp==='hog'
-      ?`🐷 ${r.players[fi]} vs all`
-      :`${r.players[fi]} + ${r.players[pi]} vs ${o.filter(i=>i!==fi&&i!==pi).map(i=>r.players[i]).join(' + ')}`;
+    const t1n=`${r.players[fi]} + ${r.players[pi]}`;
+    const t2n=o.filter(i=>i!==fi&&i!==pi).map(i=>r.players[i]).join(' + ');
+    let teams;
+    if(re==='tie'){teams=`🔄 Carryover`;}
+    else if(tp==='hog'){teams=`🐷 ${r.players[fi]} vs all`;}
+    else if(re==='win'){teams=`🏆 ${t1n}`;}
+    else if(re==='lose'){teams=`🏆 ${t2n}`;}
+    else{teams=`${t1n} vs ${t2n}`;}
     const badge=re==='win'?'win':re==='lose'?'lose':re==='tie'?'tie':'pend';
-    const label=re==='win'?'Win':re==='lose'?'Lose':re==='tie'?'Tied':'—';
+    const label=re==='win'?'Win':re==='lose'?'Lose':re==='tie'?'Tie':'—';
     let moneyStr='—';
     if(re==='win')  moneyStr=tp==='hog'?`+$${(r.stake*ch.n*3).toFixed(2)}`:`+$${s}`;
     if(re==='lose') moneyStr=tp==='hog'?`−$${(r.stake*ch.n*3).toFixed(2)}`:`−$${s}`;

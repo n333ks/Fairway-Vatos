@@ -1,4 +1,4 @@
-const CACHE = 'fairway-vatos-v5';
+const CACHE = 'fairway-vatos-v6';
 const ASSETS = [
   './',
   './index.html',

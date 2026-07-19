@@ -936,12 +936,12 @@ function renderHoleBody(h, ch) {
 
     if (tp === 'hog') {
       const hogWin = (stake * ch.n * 3).toFixed(2);
-      if      (r === 'win')  { txt = `🐷 ${pname(players[fi])} wins · +$${hogWin}`; cls = 'rb-win'; }
-      else if (r === 'lose') { txt = `🐷 ${pname(players[fi])} loses · −$${hogWin}`; cls = 'rb-lose'; }
+      if      (r === 'win')  { txt = `🐷 ${shortName(players[fi])} wins · +$${hogWin}`; cls = 'rb-win'; }
+      else if (r === 'lose') { txt = `🐷 ${shortName(players[fi])} loses · −$${hogWin}`; cls = 'rb-lose'; }
       else if (r === 'tie')  { txt = `Tied · $${ns}/player carries to hole ${nextH}`; cls = 'rb-tie'; }
       else                   { txt = 'Enter scores above'; }
     } else {
-      const aName = `${pname(players[fi])} + ${pname(players[pi])}`;
+      const aName = `${shortName(players[fi])} + ${shortName(players[pi])}`;
       const bName = teamBNames(o, fi, pi);
       if      (r === 'win')  { txt = `${aName} win · +$${s} each`; cls = 'rb-win'; }
       else if (r === 'lose') { txt = `${bName} win · +$${s} each`; cls = 'rb-lose'; }
@@ -1074,13 +1074,13 @@ function renderTotals() {
     const s  = (stake * ch.n).toFixed(2);
     const r  = hole.result;
 
-    const t1Names = `${pname(players[fi])} + ${pname(players[pi])}`;
-    const t2Names = teamBNames(o, fi, pi);
+    const t1Names = `${shortName(players[fi])} + ${shortName(players[pi])}`;
+    const t2Names = o.filter(i => i !== fi && i !== pi).map(i => shortName(players[i])).join(' + ');
     let teams;
     if (r === 'tie') {
       teams = `🔄 Carryover`;
     } else if (tp === 'hog') {
-      teams = `🐷 ${pname(players[fi])} vs all`;
+      teams = `🐷 ${shortName(players[fi])}`;
     } else if (r === 'win') {
       teams = `🏆 ${t1Names}`;
     } else if (r === 'lose') {

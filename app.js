@@ -830,6 +830,14 @@ function renderTotals() {
     if (r === 'lose') moneyStr = tp === 'hog' ? `−$${(stake*ch.n*3).toFixed(2)}` : `−$${s}`;
     if (r === 'tie')  moneyStr = '→ next';
 
+    if (!r) {
+      hr += `<div class="hr-row hr-row--inprogress">
+        <span class="hr-num">H${h+1}${ch.n > 1 ? ' ×'+ch.n : ''}</span>
+        <span class="hr-inprogress">⛳ Hole in Progress</span>
+      </div>`;
+      continue;
+    }
+
     hr += `<div class="hr-row">
       <span class="hr-num">H${h+1}${ch.n > 1 ? ' ×'+ch.n : ''}</span>
       <span class="hr-teams">${teams}</span>

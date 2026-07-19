@@ -407,6 +407,7 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .hr-badge.tie  { background:var(--orange-bg); color:var(--orange) }
 .hr-badge.pend { background:var(--bg3);       color:var(--tx2)    }
 .hr-money { font-size:13px; font-weight:600; min-width:52px; text-align:right; flex-shrink:0 }
+.hr-inprogress { flex:1; font-size:13px; color:var(--tx2); font-style:italic }
 
 /* ── mini scorecard ── */
 .mini-sc-card {

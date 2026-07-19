@@ -372,8 +372,8 @@ table.sct .stk {
   position:sticky; left:0; background:var(--bg2); z-index:2;
   font-weight:500; padding-left:12px; text-align:left;
 }
-table.sct thead th       { background:var(--bg3); color:var(--tx2); font-weight:500 }
-table.sct thead th.stk   { background:var(--bg3) }
+table.sct thead th       { background:var(--bg4); color:var(--tx2); font-weight:600 }
+table.sct thead th.stk   { background:var(--bg4) }
 table.sct .par-row td    { color:var(--tx2) }
 table.sct .sep           { background:var(--bg3) !important; font-weight:600 }
 table.sct .sep.stk       { background:var(--bg3) !important }

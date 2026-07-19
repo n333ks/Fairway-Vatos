@@ -88,11 +88,18 @@ function touchedToFS(arr) { const o = {}; arr.forEach((r, i) => o[i] = [...r]); 
 function fsToScores(o)    { return Object.keys(o).sort((a,b)=>+a - +b).map(k => o[k]); }
 function fsToTouched(o)   { return Object.keys(o).sort((a,b)=>+a - +b).map(k => o[k]); }
 
+let _syncSeq = 0;
+let _syncTimer = null;
 function syncToFirestore() {
   if (!joinCode || !isScorekeeper) return;
-  db.collection('activeRounds').doc(codeKey(joinCode)).update({
-    scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole
-  }).catch(e => console.error('sync error', e));
+  _syncSeq++;
+  const seq = _syncSeq;
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => {
+    db.collection('activeRounds').doc(codeKey(joinCode)).update({
+      scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole, seq
+    }).catch(e => console.error('sync error', e));
+  }, 300);
 }
 
 function listenToRound(key) {
@@ -120,6 +127,10 @@ function listenToRound(key) {
       scores = fsToScores(d.scores); holes = d.holes; touched = fsToTouched(d.touched);
       currentHole = d.currentHole;
       recomputeAll();
+
+      // Debug: show seq on readonly banner so we can see if snapshots are in order
+      const seqEl = document.getElementById('readonly-seq');
+      if (seqEl) seqEl.textContent = ' #' + (d.seq || 0);
 
       if (document.getElementById('sc-round').classList.contains('active')) {
         if (document.getElementById('tab-holes-wrap').style.display !== 'none') renderHoles();

@@ -475,9 +475,8 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   border-bottom: 0.5px solid rgba(84,84,88,0.4);
 }
 .hero-logo {
-  height: 72px;
-  width: auto;
-  max-width: 100%;
+  width: 80%;
+  height: auto;
   object-fit: contain;
 }
 

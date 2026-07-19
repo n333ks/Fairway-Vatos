@@ -554,23 +554,29 @@ async function startRound() {
   const myName = currentUser ? (currentUser.displayName || currentUser.email.split('@')[0]) : players[0];
   participants = { [currentUser.uid]: myName };
 
-  await db.collection('activeRounds').doc(key).set({
-    joinCode,
-    courseIdx: cIdx, teeIdx: tIdx,
-    players, stake, holeCount, nineChoice,
-    scores, holes, touched, currentHole,
-    scorekeeperUid: currentUser.uid,
-    participants,
-    createdBy: currentUser.uid,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    status: 'active'
-  });
+  try {
+    await db.collection('activeRounds').doc(key).set({
+      joinCode,
+      courseIdx: cIdx, teeIdx: tIdx,
+      players, stake, holeCount, nineChoice,
+      scores, holes, touched, currentHole,
+      scorekeeperUid: currentUser.uid,
+      participants,
+      createdBy: currentUser.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: 'active'
+    });
+    listenToRound(key);
+    showJoincodeOverlay(joinCode);
+  } catch (e) {
+    console.error('Firestore error:', e);
+    joinCode = null;
+    isScorekeeper = true;
+  }
 
-  listenToRound(key);
   showTab('holes');
   renderHoles();
   show('sc-round');
-  showJoincodeOverlay(joinCode);
 }
 
 /* ════════════════════════════════

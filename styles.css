@@ -581,11 +581,10 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   background: none;
   border: none;
   color: var(--blue);
-  font-size: 13px;
+  font-size: 12px;
   font-family: inherit;
   cursor: pointer;
-  padding: 4px 8px;
-  margin-left: 8px;
+  padding: 5px 14px;
 }
 /* ── login screen ── */
 .login-wrap {
@@ -757,18 +756,20 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .nav-end-row {
   display: flex;
   justify-content: center;
-  padding: 8px 16px 14px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 16px 6px;
 }
 .end-round-btn {
   background: var(--red-bg);
   border: none;
   border-radius: 20px;
   color: var(--red);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  padding: 8px 24px;
+  padding: 5px 14px;
 }
 .end-round-btn:active { opacity: .6 }
 .submit-scores-btn {
@@ -776,11 +777,11 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   border: none;
   border-radius: 20px;
   color: var(--blue);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  padding: 8px 24px;
+  padding: 5px 14px;
 }
 .submit-scores-btn:active { opacity: .6 }
 

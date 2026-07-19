@@ -112,6 +112,7 @@ function listenToRound(key) {
       holeCount = d.holeCount; nineChoice = d.nineChoice;
       scores = fsToScores(d.scores); holes = d.holes; touched = fsToTouched(d.touched);
       currentHole = d.currentHole;
+      recomputeAll();
     }
 
     // Update transfer button & readonly banner

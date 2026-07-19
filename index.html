@@ -85,6 +85,17 @@
       <div class="tee-scroll" id="tee-scroll"></div>
     </div>
     <div class="section">
+      <div class="section-header">Holes</div>
+      <div class="hole-count-row">
+        <button class="hole-count-btn" onclick="selHoleCount(18)">18 Holes</button>
+        <button class="hole-count-btn" onclick="selHoleCount(9)">9 Holes</button>
+      </div>
+      <div id="nine-choice" style="display:none" class="nine-choice-row">
+        <button class="nine-choice-btn" data-val="front" onclick="selNineChoice('front')">Front 9</button>
+        <button class="nine-choice-btn" data-val="back"  onclick="selNineChoice('back')">Back 9</button>
+      </div>
+    </div>
+    <div class="section">
       <div class="section-header">Players — tee order for hole 1</div>
       <div class="list-card" id="player-inputs"></div>
     </div>

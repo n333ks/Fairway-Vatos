@@ -398,19 +398,61 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   overflow: hidden;
   box-shadow: var(--shadow);
 }
-.mini-sc-tabs { display:flex; border-bottom:0.5px solid var(--sep2) }
-.mini-sc-tab {
-  flex:1; padding:10px 8px;
-  background:none; border:none;
-  color:var(--tx2); font-size:14px; font-weight:500;
-  font-family:inherit; cursor:pointer;
-  border-bottom: 2px solid transparent;
-  transition: color .15s, border-color .15s;
+/* swipe scorecard */
+.mini-sc-viewport {
+  overflow: hidden;
+  border-radius: var(--r);
 }
-.mini-sc-tab.on { color:var(--blue); border-bottom-color:var(--blue) }
+.mini-sc-track {
+  display: flex;
+  width: 200%;
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+}
+.mini-sc-half {
+  width: 50%;
+  flex-shrink: 0;
+}
+.mini-sc-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 0 2px;
+}
+.mini-sc-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--tx3);
+  transition: background .2s;
+}
+.mini-sc-dot.on { background: var(--blue); }
+
 .mini-sc-card .sc-wrap { margin:0; border-radius:0; box-shadow:none }
 .mini-sc-card .sct th,
 .mini-sc-card .sct td   { padding:5px 1px; font-size:11px }
+
+/* hole count & nine choice buttons */
+.hole-count-row, .nine-choice-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 4px;
+}
+.hole-count-btn, .nine-choice-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--sep);
+  background: var(--bg3);
+  color: var(--tx2);
+  font-size: 15px; font-weight: 600;
+  font-family: inherit; cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.hole-count-btn.sel, .nine-choice-btn.sel {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+.nine-choice-row { padding-top: 8px; }
 .mini-sc-card .sct .stk {
   padding-left:8px; max-width:64px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;

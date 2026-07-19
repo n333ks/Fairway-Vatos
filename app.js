@@ -33,10 +33,20 @@ let touched     = [];
 let currentHole   = 0;
 let scorecardPage = 0; // 0=front, 1=back
 let currentRoundId = null;
+let holeCount  = 18;      // 18 or 9
+let nineChoice = 'front'; // 'front' or 'back'
 
 /* ════════════════════════════════
    CORE LOGIC
 ════════════════════════════════ */
+function activeHoles() {
+  if (holeCount === 9) return nineChoice === 'front'
+    ? [0,1,2,3,4,5,6,7,8] : [9,10,11,12,13,14,15,16,17];
+  return Array.from({length:18}, (_,i) => i);
+}
+function firstHole() { return activeHoles()[0]; }
+function lastHole()  { return activeHoles()[activeHoles().length - 1]; }
+
 function ord(h) {
   return players.map((_, i) => (i + h) % players.length);
 }
@@ -178,10 +188,10 @@ function showTab(t) {
 }
 
 function prevHole() {
-  if (currentHole > 0) goToHole(currentHole - 1);
+  if (currentHole > firstHole()) goToHole(currentHole - 1);
 }
 function nextHole() {
-  if (currentHole < 17 && touched[currentHole].every(t => t)) goToHole(currentHole + 1);
+  if (currentHole < lastHole() && touched[currentHole].every(t => t)) goToHole(currentHole + 1);
 }
 
 /* ════════════════════════════════
@@ -207,9 +217,14 @@ function renderCourses() {
 
 function selectCourse(i) {
   cIdx = i; tIdx = 2;
+  holeCount = 18; nineChoice = 'front';
   document.getElementById('setup-sub').textContent = COURSES[i].name + ' · ' + COURSES[i].sub;
   renderTeeScroll();
   renderPlayerInputs();
+  // Init hole count buttons
+  document.querySelectorAll('.hole-count-btn').forEach((b, idx) => b.classList.toggle('sel', idx === 0));
+  document.querySelectorAll('.nine-choice-btn').forEach(b => b.classList.toggle('sel', b.dataset.val === 'front'));
+  document.getElementById('nine-choice').style.display = 'none';
   show('sc-setup');
 }
 
@@ -253,7 +268,8 @@ function renderPlayerInputs() {
 function saveSession() {
   if (!players.length) return;
   localStorage.setItem('hog_session', JSON.stringify({
-    cIdx, tIdx, players, stake, scores, holes, touched, currentHole, currentRoundId
+    cIdx, tIdx, players, stake, scores, holes, touched, currentHole, currentRoundId,
+    holeCount, nineChoice
   }));
 }
 
@@ -271,19 +287,35 @@ function continueRound() {
   cIdx = s.cIdx; tIdx = s.tIdx; players = s.players; stake = s.stake;
   scores = s.scores; holes = s.holes; touched = s.touched;
   currentHole = s.currentHole; currentRoundId = s.currentRoundId;
+  holeCount = s.holeCount || 18; nineChoice = s.nineChoice || 'front';
   showTab('holes');
   renderHoles();
   show('sc-round');
 }
 
+function selHoleCount(n) {
+  holeCount = n;
+  document.querySelectorAll('.hole-count-btn').forEach((b, i) => {
+    b.classList.toggle('sel', (i === 0 ? 18 : 9) === n);
+  });
+  document.getElementById('nine-choice').style.display = n === 9 ? 'flex' : 'none';
+}
+
+function selNineChoice(c) {
+  nineChoice = c;
+  document.querySelectorAll('.nine-choice-btn').forEach(b => {
+    b.classList.toggle('sel', b.dataset.val === c);
+  });
+}
+
 function startRound() {
   const inputs = document.querySelectorAll('#player-inputs input');
   players = [0,1,2,3].map(i => inputs[i].value.trim() || 'Player ' + (i+1));
-  const c = COURSES[cIdx], t = c.tees[tIdx];
   scores  = Array.from({length:18}, () => players.map(() => null));
   holes   = Array.from({length:18}, () => ({type:null, partner:null, result:null}));
   touched = Array.from({length:18}, () => players.map(() => false));
-  currentHole    = 0;
+  currentHole    = firstHole();
+  scorecardPage  = nineChoice === 'back' ? 1 : 0;
   currentRoundId = null;
   clearSession();
   showTab('holes');
@@ -312,8 +344,8 @@ function renderHoles() {
   if (subEl)   subEl.textContent   = `${t.n} · ${yds} yds · HCP ${hcp}`;
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('btn-next');
-  if (btnPrev) btnPrev.disabled = (h === 0);
-  if (btnNext) btnNext.disabled = (h === 17 || !allTouched);
+  if (btnPrev) btnPrev.disabled = (h === firstHole());
+  if (btnNext) btnNext.disabled = (h === lastHole() || !allTouched);
 
   const stakeTag = ch.n > 1
     ? `<span class="carry-tag">$${(stake * ch.n).toFixed(2)}/player</span>` : '';
@@ -346,35 +378,24 @@ function goToHole(h) {
 
 function setSCPage(p) {
   scorecardPage = p;
-  renderMiniScorecard();
+  const track = document.getElementById('mini-sc-track');
+  if (track) track.style.transform = `translateX(${p === 0 ? '0%' : '-50%'})`;
+  document.querySelectorAll('.mini-sc-dot').forEach((d, i) => d.classList.toggle('on', i === p));
 }
 
-function renderMiniScorecard() {
-  const el = document.getElementById('mini-sc');
-  if (!el) return;
-  const c     = COURSES[cIdx];
-  const t     = c.tees[tIdx];
-  const par   = c.par;
-  const start = scorecardPage === 0 ? 0 : 9;
-  const hrs   = Array.from({length:9}, (_, i) => start + i);
-  const label = scorecardPage === 0 ? 'Out' : 'In';
-  const ydsTotal = hrs.reduce((s, h) => s + t.yds[h], 0);
+function buildMiniHalf(startH, label) {
+  const c   = COURSES[cIdx];
+  const par = c.par;
+  const hrs = Array.from({length:9}, (_, i) => startH + i);
   const parTotal = hrs.reduce((s, h) => s + par[h], 0);
-
-  el.innerHTML = `
-    <div class="mini-sc-tabs">
-      <button class="mini-sc-tab${scorecardPage===0?' on':''}" onclick="setSCPage(0)">Front 9</button>
-      <button class="mini-sc-tab${scorecardPage===1?' on':''}" onclick="setSCPage(1)">Back 9</button>
-    </div>
-    <div class="sc-wrap" style="margin:0;border-radius:0 0 var(--r) var(--r)">
+  return `<div class="mini-sc-half">
+    <div class="sc-wrap" style="margin:0">
       <table class="sct">
-        <thead>
-          <tr>
-            <th class="stk">Hole</th>
-            ${hrs.map(h => `<th${h===currentHole?' class="mini-cur"':''}>${h+1}</th>`).join('')}
-            <th class="sep">${label}</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th class="stk">Hole</th>
+          ${hrs.map(h => `<th${h===currentHole?' class="mini-cur"':''}>${h+1}</th>`).join('')}
+          <th class="sep">${label}</th>
+        </tr></thead>
         <tbody>
           <tr class="par-row">
             <td class="stk">Par</td>
@@ -390,17 +411,50 @@ function renderMiniScorecard() {
             const diffCol = diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--red)' : 'var(--tx2)';
             const subCell = entered.length
               ? `<div>${sub}</div><div style="font-size:9px;color:${diffCol}">${diffStr}</div>`
-              : '—';
+              : `<div>—</div><div style="font-size:9px;color:var(--tx3)">—</div>`;
             const shortName = name.split(' ')[0].slice(0, 8);
             return `<tr>
               <td class="stk">${shortName}</td>
-              ${hrs.map(h => scores[h][p] !== null ? `<td>${fmtCell(scores[h][p], par[h])}</td>` : `<td style="color:var(--tx3)">—</td>`).join('')}
+              ${hrs.map(h => scores[h][p] !== null
+                ? `<td>${fmtCell(scores[h][p], par[h])}</td>`
+                : `<td><div>—</div><div style="font-size:9px;color:var(--tx3)">—</div></td>`
+              ).join('')}
               <td class="sep">${subCell}</td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
+    </div>
+  </div>`;
+}
+
+function renderMiniScorecard() {
+  const el = document.getElementById('mini-sc');
+  if (!el) return;
+
+  const offset = scorecardPage === 0 ? '0%' : '-50%';
+  el.innerHTML = `
+    <div class="mini-sc-viewport">
+      <div class="mini-sc-track" id="mini-sc-track" style="transform:translateX(${offset})">
+        ${buildMiniHalf(0, 'Out')}
+        ${buildMiniHalf(9, 'In')}
+      </div>
+    </div>
+    <div class="mini-sc-dots">
+      <span class="mini-sc-dot${scorecardPage===0?' on':''}"></span>
+      <span class="mini-sc-dot${scorecardPage===1?' on':''}"></span>
     </div>`;
+
+  // Swipe gesture
+  const vp = el.querySelector('.mini-sc-viewport');
+  let startX = null;
+  vp.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive:true});
+  vp.addEventListener('touchend', e => {
+    if (startX === null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 40) setSCPage(dx < 0 ? 1 : 0);
+    startX = null;
+  }, {passive:true});
 }
 
 
@@ -738,14 +792,23 @@ function fmtCell(s, par) {
 ════════════════════════════════ */
 function saveRound() {
   if (!players.length) return;
+  // Require at least 9 completed holes
+  const ah = activeHoles();
+  const completedHoles = ah.filter(h => touched[h].every(t => t)).length;
+  if (completedHoles < 9) return;
+
   const money = calcMoney();
   const id    = currentRoundId || Date.now();
   currentRoundId = id;
   const t = COURSES[cIdx].tees[tIdx];
+  // Score diff only uses active holes gross score
   const scoreDiffs = (t.rating != null)
     ? players.map((_, p) => {
-        const gross = scores.reduce((sum, h) => sum + (h[p] || 0), 0);
-        return parseFloat(((113 / t.slope) * (gross - t.rating)).toFixed(1));
+        const gross = ah.reduce((sum, h) => sum + (scores[h][p] || 0), 0);
+        // For 9-hole rounds adjust rating and slope to 9-hole equivalents
+        const adjRating = holeCount === 9 ? t.rating / 2 : t.rating;
+        const adjSlope  = t.slope;
+        return parseFloat(((113 / adjSlope) * (gross - adjRating)).toFixed(1));
       })
     : null;
   const round = {
@@ -756,6 +819,8 @@ function saveRound() {
     tee:        COURSES[cIdx].tees[tIdx].n,
     rating:     t.rating,
     slope:      t.slope,
+    holeCount,
+    nineChoice: holeCount === 9 ? nineChoice : null,
     players:    [...players],
     stake,
     scores:     scores.map(h => [...h]),

@@ -547,19 +547,11 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .home-recent-meta   { font-size: 13px; color: var(--tx2); margin-bottom: 12px }
 .home-recent-pills  { display: flex; flex-wrap: wrap; gap: 6px }
 
-/* ── continue round banner ── */
-.home-continue-btn {
-  width: 100%; display: flex; align-items: center; gap: 16px;
-  background: var(--orange); color: #fff;
-  border: none; border-radius: var(--r);
-  padding: 16px 20px;
-  cursor: pointer; font-family: inherit; text-align: left;
-  box-shadow: 0 4px 16px rgba(255,149,0,0.3);
+/* ── continue round variant ── */
+.home-primary-btn--continue {
+  background: var(--green);
+  box-shadow: 0 4px 16px rgba(52,199,89,0.3);
 }
-.home-continue-btn:active { opacity: .85 }
-.home-continue-left { flex: 1 }
-.home-continue-title { font-size: 16px; font-weight: 700 }
-.home-continue-sub   { font-size: 13px; opacity: .85; margin-top: 2px }
 
 /* ── totals scorecard split layout ── */
 .sc-half-label {

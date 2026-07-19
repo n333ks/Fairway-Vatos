@@ -1067,48 +1067,62 @@ function showLeaderboard() {
    INIT
 ════════════════════════════════ */
 function renderHomeRecent() {
-  const el   = document.getElementById('home-recent');
-  if (!el) return;
-  let html = '';
+  const primaryEl = document.getElementById('home-primary');
+  const recentEl  = document.getElementById('home-recent');
 
-  // Continue Round banner
-  if (hasActiveSession()) {
-    const s = JSON.parse(localStorage.getItem('hog_session'));
-    const courseName = COURSES[s.cIdx] ? COURSES[s.cIdx].sub : 'Round';
-    const tee = COURSES[s.cIdx] ? COURSES[s.cIdx].tees[s.tIdx].n : '';
-    const holesIn = s.touched.filter(h => h.every(t => t)).length;
-    html += `<button class="home-continue-btn" onclick="continueRound()">
-      <div class="home-continue-left">
-        <div class="home-continue-title">⛳ Continue Round</div>
-        <div class="home-continue-sub">${courseName} · ${tee} tees · Hole ${holesIn + 1} of 18</div>
-      </div>
-      <div class="home-primary-chevron">›</div>
-    </button>`;
+  // Primary button: Continue Round (if session active) or Start a Round
+  if (primaryEl) {
+    if (hasActiveSession()) {
+      const s          = JSON.parse(localStorage.getItem('hog_session'));
+      const course     = COURSES[s.cIdx];
+      const courseName = course ? course.name : 'Round';
+      const courseSub  = course ? course.sub  : '';
+      const tee        = course ? course.tees[s.tIdx].n : '';
+      const holesIn    = s.touched.filter(h => h.every(t => t)).length;
+      const playerList = s.players.join(', ');
+      primaryEl.innerHTML = `<button class="home-primary-btn home-primary-btn--continue" onclick="continueRound()">
+        <div class="home-primary-icon">⛳</div>
+        <div class="home-primary-text">
+          <div class="home-primary-title">Continue Round</div>
+          <div class="home-primary-sub">${courseSub} · ${tee} tees · Through hole ${holesIn}</div>
+          <div class="home-primary-sub">${playerList}</div>
+        </div>
+        <div class="home-primary-chevron">›</div>
+      </button>`;
+    } else {
+      primaryEl.innerHTML = `<button class="home-primary-btn" onclick="show('sc-courses')">
+        <div class="home-primary-icon">⛳</div>
+        <div class="home-primary-text">
+          <div class="home-primary-title">Start a Round</div>
+          <div class="home-primary-sub">Choose course, players &amp; stake</div>
+        </div>
+        <div class="home-primary-chevron">›</div>
+      </button>`;
+    }
   }
 
+  // Recent round card
+  if (!recentEl) return;
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
-  if (hist.length) {
-    const r    = hist[0];
-    const d    = new Date(r.date);
-    const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-    const pills = r.players.map((name, i) => {
-      const m   = r.money[i];
-      const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
-      const amt = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
-      return `<span class="history-money-pill ${cls}">${name} ${amt}</span>`;
-    }).join('');
-    html += `<div class="home-recent-card" onclick="viewRound(${r.id}); show('sc-history-detail')">
-      <div class="home-recent-hdr">
-        <span class="home-recent-label">Recent Round</span>
-        <span class="home-recent-chevron">›</span>
-      </div>
-      <div class="home-recent-course">${r.courseSub || r.course}</div>
-      <div class="home-recent-meta">${date} · ${r.tee} tees · $${r.stake}/hole</div>
-      <div class="home-recent-pills">${pills}</div>
-    </div>`;
-  }
-
-  el.innerHTML = html;
+  if (!hist.length) { recentEl.innerHTML = ''; return; }
+  const r    = hist[0];
+  const d    = new Date(r.date);
+  const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  const pills = r.players.map((name, i) => {
+    const m   = r.money[i];
+    const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
+    const amt = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
+    return `<span class="history-money-pill ${cls}">${name} ${amt}</span>`;
+  }).join('');
+  recentEl.innerHTML = `<div class="home-recent-card" onclick="viewRound(${r.id}); show('sc-history-detail')">
+    <div class="home-recent-hdr">
+      <span class="home-recent-label">Recent Round</span>
+      <span class="home-recent-chevron">›</span>
+    </div>
+    <div class="home-recent-course">${r.courseSub || r.course}</div>
+    <div class="home-recent-meta">${date} · ${r.tee} tees · $${r.stake}/hole</div>
+    <div class="home-recent-pills">${pills}</div>
+  </div>`;
 }
 
 (function init() {

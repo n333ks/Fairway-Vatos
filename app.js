@@ -1157,13 +1157,11 @@ function renderHoleBodyScramble(h, ch) {
   let html = ch.carry ? `<div class="carry-lock"><span class="carry-lock-badge">🔒 Carryover</span></div>` : '';
   html += `
     <div class="team-section team-a">
-      <div class="team-label">${tA} — ${aMembers}</div>
-      ${scoreRowHTML(h, a0, tA)}
+      ${scoreRowHTML(h, a0, `${tA} — ${aMembers}`)}
     </div>
     <div class="vs-row"><div class="vs-line"></div><span class="vs-txt">VS</span><div class="vs-line"></div></div>
     <div class="team-section team-b">
-      <div class="team-label">${tB} — ${bMembers}</div>
-      ${scoreRowHTML(h, b0, tB)}
+      ${scoreRowHTML(h, b0, `${tB} — ${bMembers}`)}
     </div>`;
   if (touched[h][a0] && touched[h][b0]) {
     let txt = 'Enter scores above', cls = 'rb-pending';

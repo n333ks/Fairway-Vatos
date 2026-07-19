@@ -403,7 +403,7 @@ function buildScorecardHalf(startH, endH, halfLabel, colLabel) {
   const halfPar  = par.slice(startH, endH).reduce((a, b) => a + b, 0);
   const grandPar = par.reduce((a, b) => a + b, 0);
 
-  let thead = `<thead><tr><th class="stk">Player</th>`;
+  let thead = `<thead><tr><th class="stk">Hole</th>`;
   for (let h = startH; h < endH; h++)
     thead += `<th${h===currentHole?' class="mini-cur"':''}>${h+1}</th>`;
   thead += `<th class="sep">${colLabel}</th>`;

@@ -838,7 +838,7 @@ function scoreRowHTML(h, pi, name) {
 }
 
 function teamBNames(o, fi, pi) {
-  return o.filter(i => i !== fi && i !== pi).map(i => pname(players[i])).join(' + ');
+  return o.filter(i => i !== fi && i !== pi).map(i => shortName(players[i])).join(' + ');
 }
 
 function renderHoleBody(h, ch) {

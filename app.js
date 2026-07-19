@@ -719,7 +719,7 @@ function renderTotals() {
     </div>`;
 
   // Swipe gesture on totals scorecard
-  const tvp = document.querySelector('.totals-sc-viewport');
+  const tvp = document.querySelector('#sc-table .totals-sc-viewport');
   if (tvp) {
     let startX = null;
     tvp.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive:true});

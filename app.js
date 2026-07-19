@@ -88,11 +88,15 @@ function touchedToFS(arr) { const o = {}; arr.forEach((r, i) => o[i] = [...r]); 
 function fsToScores(o)    { return Object.keys(o).sort((a,b)=>+a - +b).map(k => o[k]); }
 function fsToTouched(o)   { return Object.keys(o).sort((a,b)=>+a - +b).map(k => o[k]); }
 
+let _syncTimer = null;
 function syncToFirestore() {
   if (!joinCode || !isScorekeeper) return;
-  db.collection('activeRounds').doc(codeKey(joinCode)).update({
-    scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole
-  }).catch(() => {});
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => {
+    db.collection('activeRounds').doc(codeKey(joinCode)).update({
+      scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole
+    }).catch(() => {});
+  }, 300);
 }
 
 function listenToRound(key) {

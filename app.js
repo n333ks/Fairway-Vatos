@@ -350,14 +350,13 @@ function renderHoles() {
   const stakeTag = ch.n > 1
     ? `<span class="carry-tag">$${(stake * ch.n).toFixed(2)}/player</span>` : '';
 
-  const isLastHole   = h === lastHole();
-  const holeType     = holes[h].type;
-  const needsPartner = holeType === '2v2' && holes[h].partner === null;
-  const holeReady    = allTouched && holeType && !needsPartner;
+  const isLastHole    = h === lastHole();
+  const effectiveType = ch.carry ? ch.t : holes[h].type;
+  const needsPartner  = !ch.carry && effectiveType === '2v2' && holes[h].partner === null;
 
   const blocked = !allTouched
     ? `<div class="next-hole-blocked">Enter all scores to continue</div>`
-    : !holeType
+    : !effectiveType
       ? `<div class="next-hole-blocked">Choose a game type above</div>`
       : needsPartner
         ? `<div class="next-hole-blocked">Choose teams above</div>`

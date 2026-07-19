@@ -510,6 +510,14 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .team-player-btn.team-a { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); }
 .team-player-btn.team-b { background:var(--green-bg); border-color:var(--green); color:var(--green); }
 .team-assign-hint { font-size:12px; color:var(--tx3); text-align:center; padding:8px 0 4px; }
+.team-name-input {
+  width:100%; box-sizing:border-box;
+  background:transparent; border:none; border-bottom:1.5px solid var(--sep2);
+  padding:4px 2px; font-size:14px; font-weight:700; font-family:inherit;
+  color:var(--tx); outline:none; text-align:center;
+}
+.team-name-input.a { border-color:var(--blue); color:var(--blue); }
+.team-name-input.b { border-color:var(--green); color:var(--green); }
 .mini-sc-card .sct .stk {
   padding-left:8px; max-width:64px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;

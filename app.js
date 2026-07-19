@@ -98,7 +98,7 @@ function syncToFirestore() {
   _syncTimer = setTimeout(() => {
     db.collection('activeRounds').doc(codeKey(joinCode)).update({
       scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole, seq,
-      gameType, scrambleTeams
+      gameType, scrambleTeams, scrambleTeamNames
     }).catch(e => console.error('sync error', e));
   }, 300);
 }
@@ -129,7 +129,7 @@ function listenToRound(key) {
       cIdx = d.courseIdx; tIdx = d.teeIdx;
       players = d.players; stake = d.stake;
       holeCount = d.holeCount; nineChoice = d.nineChoice;
-      gameType = d.gameType || 'hog'; scrambleTeams = d.scrambleTeams || [[], []];
+      gameType = d.gameType || 'hog'; scrambleTeams = d.scrambleTeams || [[], []]; scrambleTeamNames = d.scrambleTeamNames || ['Team A', 'Team B'];
       scores = fsToScores(d.scores); holes = d.holes; touched = fsToTouched(d.touched);
       currentHole = d.currentHole;
       recomputeAll();
@@ -280,6 +280,7 @@ let nineChoice = 'front'; // 'front' or 'back'
 let gameType   = 'hog';   // 'hog' | 'scramble' | 'stroke'
 let scrambleTeams     = [[], []]; // [[playerIdx,playerIdx],[playerIdx,playerIdx]] during round
 let scrambleTeamAssign = [0, 0, 1, 1]; // team (0/1) for each position in selectedPlayers
+let scrambleTeamNames  = ['Team A', 'Team B'];
 
 // Compat helper: players can be {name,uid} objects (new) or strings (old history)
 function pname(p) { return typeof p === 'string' ? p : (p && p.name) || 'Player'; }
@@ -666,22 +667,26 @@ function renderTeamAssignment() {
   if (gameType !== 'scramble' || selectedPlayers.length !== 4) { el.style.display = 'none'; return; }
   el.style.display = 'block';
   const cols = [0, 1].map(t => {
-    const label = t === 0 ? 'Team A' : 'Team B';
-    const cls   = t === 0 ? 'a' : 'b';
+    const cls    = t === 0 ? 'a' : 'b';
     const btnCls = t === 0 ? 'team-a' : 'team-b';
-    const btns = selectedPlayers.map((p, i) => scrambleTeamAssign[i] === t
+    const btns   = selectedPlayers.map((p, i) => scrambleTeamAssign[i] === t
       ? `<button class="team-player-btn ${btnCls}" onclick="switchTeam(${i})">${shortName(p)}</button>`
       : '').join('');
     return `<div class="team-assign-col">
-      <div class="team-assign-label ${cls}">${label}</div>
+      <input class="team-name-input ${cls}" value="${scrambleTeamNames[t]}"
+             oninput="setTeamName(${t}, this.value)" placeholder="Team ${t === 0 ? 'A' : 'B'}">
       ${btns}
     </div>`;
   }).join('');
   el.innerHTML = `<div class="team-assign-wrap">
-    <div class="team-assign-hdr">Assign teams — tap a player to switch sides</div>
+    <div class="team-assign-hdr">Name your teams — tap a player to switch sides</div>
     <div class="team-assign-cols">${cols}</div>
     <div class="team-assign-hint">Each team needs exactly 2 players</div>
   </div>`;
+}
+
+function setTeamName(t, name) {
+  scrambleTeamNames[t] = name || (t === 0 ? 'Team A' : 'Team B');
 }
 
 function switchTeam(i) {
@@ -739,7 +744,7 @@ function saveSession() {
   if (!players.length) return;
   localStorage.setItem('hog_session', JSON.stringify({
     cIdx, tIdx, players, stake, scores, holes, touched, currentHole, currentRoundId,
-    holeCount, nineChoice, gameType, scrambleTeams
+    holeCount, nineChoice, gameType, scrambleTeams, scrambleTeamNames
   }));
 }
 
@@ -759,6 +764,7 @@ function continueRound() {
   currentHole = s.currentHole; currentRoundId = s.currentRoundId;
   holeCount = s.holeCount || 18; nineChoice = s.nineChoice || 'front';
   gameType = s.gameType || 'hog'; scrambleTeams = s.scrambleTeams || [[], []];
+  scrambleTeamNames = s.scrambleTeamNames || ['Team A', 'Team B'];
   isScorekeeper = true; // local session = always scorekeeper
   showTab('holes');
   renderHoles();
@@ -812,7 +818,7 @@ async function startRound() {
       joinCode,
       courseIdx: cIdx, teeIdx: tIdx,
       players, stake, holeCount, nineChoice,
-      gameType, scrambleTeams,
+      gameType, scrambleTeams, scrambleTeamNames,
       scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole,
       scorekeeperUid: currentUser.uid,
       participants,
@@ -895,8 +901,7 @@ function renderHolesBodyHog(h) {
 function renderHolesBodyScramble(h) {
   const chains = buildScrambleChains(), ch = chains[h];
   const a0 = scrambleTeams[0][0], b0 = scrambleTeams[1][0];
-  const aName = scrambleTeams[0].map(i => shortName(players[i])).join(' + ');
-  const bName = scrambleTeams[1].map(i => shortName(players[i])).join(' + ');
+  const tA = scrambleTeamNames[0], tB = scrambleTeamNames[1];
   const ready = touched[h][a0] && touched[h][b0];
   const stakeTag = ch.n > 1 ? `<span class="carry-tag">$${(stake*ch.n).toFixed(2)}/team</span>` : '';
   const blocked = !ready
@@ -908,7 +913,7 @@ function renderHolesBodyScramble(h) {
       <div class="hole-card-hdr">
         <div>
           <div class="first-tee-lbl">2-Man Scramble</div>
-          <div class="first-tee-name">${aName} <span style="color:var(--tx3);font-size:12px">vs</span> ${bName}</div>
+          <div class="first-tee-name">${tA} <span style="color:var(--tx3);font-size:12px">vs</span> ${tB}</div>
         </div>
         ${stakeTag}
       </div>
@@ -982,7 +987,7 @@ function buildScorecardHalfScramble(startH, endH, halfLabel, colLabel) {
   tbody += `<td class="sep">${halfPar}</td>${isBack ? `<td class="sep">${grandPar}</td>` : ''}</tr>`;
   [0, 1].forEach(t => {
     const capIdx = scrambleTeams[t][0];
-    const tName  = `Team ${t === 0 ? 'A' : 'B'}`;
+    const tName  = scrambleTeamNames[t];
     const sc = scores.map(h => h[capIdx]);
     const entered = Array.from({length: endH-startH}, (_,i) => startH+i).filter(h => sc[h] !== null);
     const halfSum  = entered.reduce((a,h) => a + sc[h], 0);
@@ -1144,26 +1149,27 @@ function renderHoleBodyScramble(h, ch) {
   const el = document.getElementById('hb-' + h);
   if (!el) return;
   const a0 = scrambleTeams[0][0], b0 = scrambleTeams[1][0];
-  const aName = scrambleTeams[0].map(i => shortName(players[i])).join(' + ');
-  const bName = scrambleTeams[1].map(i => shortName(players[i])).join(' + ');
+  const tA = scrambleTeamNames[0], tB = scrambleTeamNames[1];
+  const aMembers = scrambleTeams[0].map(i => shortName(players[i])).join(' + ');
+  const bMembers = scrambleTeams[1].map(i => shortName(players[i])).join(' + ');
   const s = (stake * ch.n).toFixed(2), ns = (stake * (ch.n + 1)).toFixed(2);
   const r = holes[h].result;
   let html = ch.carry ? `<div class="carry-lock"><span class="carry-lock-badge">🔒 Carryover</span></div>` : '';
   html += `
     <div class="team-section team-a">
-      <div class="team-label">Team A — ${aName}</div>
-      ${scoreRowHTML(h, a0, 'Team A')}
+      <div class="team-label">${tA} — ${aMembers}</div>
+      ${scoreRowHTML(h, a0, tA)}
     </div>
     <div class="vs-row"><div class="vs-line"></div><span class="vs-txt">VS</span><div class="vs-line"></div></div>
     <div class="team-section team-b">
-      <div class="team-label">Team B — ${bName}</div>
-      ${scoreRowHTML(h, b0, 'Team B')}
+      <div class="team-label">${tB} — ${bMembers}</div>
+      ${scoreRowHTML(h, b0, tB)}
     </div>`;
   if (touched[h][a0] && touched[h][b0]) {
     let txt = 'Enter scores above', cls = 'rb-pending';
     const nextH = h + 2;
-    if (r === 'win')  { txt = `Team A wins · +$${s} each`; cls = 'rb-win'; }
-    else if (r === 'lose') { txt = `Team B wins · +$${s} each`; cls = 'rb-win'; }
+    if (r === 'win')  { txt = `${tA} wins · +$${s} each`; cls = 'rb-win'; }
+    else if (r === 'lose') { txt = `${tB} wins · +$${s} each`; cls = 'rb-win'; }
     else if (r === 'tie')  { txt = `Tied · $${ns}/player carries to hole ${nextH}`; cls = 'rb-tie'; }
     html += `<div class="result-banner ${cls}">${txt}</div>`;
   }
@@ -1424,8 +1430,8 @@ function renderTotals() {
   if (gameType === 'scramble') {
     const chains = buildScrambleChains();
     const myTeam = myIdx >= 0 ? scrambleTeams.findIndex(t => t.includes(myIdx)) : -1;
-    const aName  = scrambleTeams[0].map(i => shortName(players[i])).join(' + ');
-    const bName  = scrambleTeams[1].map(i => shortName(players[i])).join(' + ');
+    const aName  = scrambleTeamNames[0];
+    const bName  = scrambleTeamNames[1];
     for (let h = lastHole(); h >= firstHole(); h--) {
       const r = holes[h].result, ch = chains[h];
       const s = (stake * ch.n).toFixed(2);
@@ -1585,6 +1591,7 @@ function saveRound() {
     nineChoice: holeCount === 9 ? nineChoice : null,
     gameType,
     scrambleTeams: JSON.parse(JSON.stringify(scrambleTeams)),
+    scrambleTeamNames: [...scrambleTeamNames],
     players:    [...players],
     stake,
     scores:     scores.map(h => [...h]),
@@ -1695,7 +1702,7 @@ function viewRound(id) {
   // Scorecard — use same buildScorecardHalf as live round by temporarily setting globals
   const _cIdx = cIdx, _tIdx = tIdx, _players = players, _scores = scores,
         _currentHole = currentHole, _scPage = scorecardPage,
-        _gameType = gameType, _scrambleTeams = scrambleTeams,
+        _gameType = gameType, _scrambleTeams = scrambleTeams, _scrambleTeamNames = scrambleTeamNames,
         _holeCount = holeCount, _nineChoice = nineChoice;
   cIdx = COURSES.findIndex(x => x.name === r.courseName);
   if (cIdx < 0) cIdx = 0;
@@ -1705,6 +1712,7 @@ function viewRound(id) {
   scores  = r.scores;
   gameType = r.gameType || 'hog';
   scrambleTeams = r.scrambleTeams || [[], []];
+  scrambleTeamNames = r.scrambleTeamNames || ['Team A', 'Team B'];
   holeCount = r.holeCount || 18;
   nineChoice = r.nineChoice || 'front';
   currentHole = -1;
@@ -1715,7 +1723,7 @@ function viewRound(id) {
 
   cIdx = _cIdx; tIdx = _tIdx; players = _players; scores = _scores;
   currentHole = _currentHole; scorecardPage = _scPage;
-  gameType = _gameType; scrambleTeams = _scrambleTeams;
+  gameType = _gameType; scrambleTeams = _scrambleTeams; scrambleTeamNames = _scrambleTeamNames;
   holeCount = _holeCount; nineChoice = _nineChoice;
 
   html += `<div class="totals-section-title">Scorecard</div>

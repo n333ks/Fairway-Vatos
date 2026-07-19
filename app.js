@@ -761,10 +761,8 @@ function renderTotals() {
         const onLoseTeam = (hole.result === 'lose' && t1.includes(p)) ||
                            (hole.result === 'win'  && t1.length > 0 && !t1.includes(p));
         const onTie      = hole.result === 'tie' && tp;
-        const bg = onWinTeam  ? 'background:rgba(50,215,75,0.12)'  :
-                   onLoseTeam ? 'background:rgba(255,69,58,0.12)'  :
-                   onTie      ? 'background:rgba(255,159,10,0.12)' : '';
-        tbody2 += `<td style="${bg}">${fmtCell(sc[h], par[h])}</td>`;
+        const hlCls = onWinTeam ? 'hl-win' : onLoseTeam ? 'hl-lose' : onTie ? 'hl-tie' : '';
+        tbody2 += `<td>${fmtCell(sc[h], par[h], hlCls)}</td>`;
       }
       tbody2 += `<td class="sep" style="font-weight:700">${halfDisp}</td>`;
       if (isBack) tbody2 += `<td class="sep" style="font-weight:700">${grandCell}</td>`;
@@ -845,14 +843,15 @@ function renderTotals() {
     '<div class="hr-row"><span style="color:var(--tx2);font-size:14px">No holes entered yet</span></div>';
 }
 
-function fmtCell(s, par) {
+function fmtCell(s, par, hlCls = '') {
   if (s === null) return `<span style="color:var(--tx3)">—</span>`;
   const d = s - par;
-  if (d <= -3) return `<span class="ca">${s}</span>`;
-  if (d === -2) return `<span class="ce">${s}</span>`;
-  if (d === -1) return `<span class="cu">${s}</span>`;
-  if (d >= 1)   return `<span class="co">${s}</span>`;
-  return `${s}`;
+  const hl = hlCls ? ` ${hlCls}` : '';
+  if (d <= -3) return `<span class="ca${hl}">${s}</span>`;
+  if (d === -2) return `<span class="ce${hl}">${s}</span>`;
+  if (d === -1) return `<span class="cu${hl}">${s}</span>`;
+  if (d >= 1)   return `<span class="co${hl}">${s}</span>`;
+  return `<span class="cn${hl}">${s}</span>`;
 }
 
 

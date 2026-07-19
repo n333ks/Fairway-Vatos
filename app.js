@@ -384,10 +384,15 @@ function setSCPage(p) {
 }
 
 function buildMiniHalf(startH, label) {
+  const isBack = startH === 9;
   const c   = COURSES[cIdx];
   const par = c.par;
   const hrs = Array.from({length:9}, (_, i) => startH + i);
-  const parTotal = hrs.reduce((s, h) => s + par[h], 0);
+  const frontHrs = [0,1,2,3,4,5,6,7,8];
+  const parTotal    = hrs.reduce((s, h) => s + par[h], 0);
+  const parFrontTot = frontHrs.reduce((s, h) => s + par[h], 0);
+  const parGrandTot = par.reduce((s, p) => s + p, 0);
+
   return `<div class="mini-sc-half">
     <div class="sc-wrap" style="margin:0">
       <table class="sct">
@@ -395,12 +400,14 @@ function buildMiniHalf(startH, label) {
           <th class="stk">Hole</th>
           ${hrs.map(h => `<th${h===currentHole?' class="mini-cur"':''}>${h+1}</th>`).join('')}
           <th class="sep">${label}</th>
+          ${isBack ? `<th class="sep">Tot</th>` : ''}
         </tr></thead>
         <tbody>
           <tr class="par-row">
             <td class="stk">Par</td>
             ${hrs.map(h => `<td>${par[h]}</td>`).join('')}
             <td class="sep">${parTotal}</td>
+            ${isBack ? `<td class="sep">${parGrandTot}</td>` : ''}
           </tr>
           ${players.map((name, p) => {
             const entered = hrs.filter(h => scores[h][p] !== null);
@@ -412,6 +419,20 @@ function buildMiniHalf(startH, label) {
             const subCell = entered.length
               ? `<div>${sub}</div><div style="font-size:9px;color:${diffCol}">${diffStr}</div>`
               : `<div>—</div><div style="font-size:9px;color:var(--tx3)">—</div>`;
+
+            let totCell = `<div>—</div><div style="font-size:9px;color:var(--tx3)">—</div>`;
+            if (isBack) {
+              const frontEntered = frontHrs.filter(h => scores[h][p] !== null);
+              const frontSub = frontEntered.reduce((s, h) => s + scores[h][p], 0);
+              const allEntered = [...frontHrs, ...hrs].filter(h => scores[h][p] !== null);
+              const grandTot = allEntered.reduce((s, h) => s + scores[h][p], 0);
+              const grandPar = allEntered.reduce((s, h) => s + par[h], 0);
+              const grandDiff = grandTot - grandPar;
+              const grandDiffStr = grandDiff === 0 ? 'E' : (grandDiff > 0 ? '+' : '') + grandDiff;
+              const grandCol = grandDiff < 0 ? 'var(--green)' : grandDiff > 0 ? 'var(--red)' : 'var(--tx2)';
+              if (allEntered.length) totCell = `<div>${grandTot}</div><div style="font-size:9px;color:${grandCol}">${grandDiffStr}</div>`;
+            }
+
             const shortName = name.split(' ')[0].slice(0, 8);
             return `<tr>
               <td class="stk">${shortName}</td>
@@ -420,6 +441,7 @@ function buildMiniHalf(startH, label) {
                 : `<td><div>—</div><div style="font-size:9px;color:var(--tx3)">—</div></td>`
               ).join('')}
               <td class="sep">${subCell}</td>
+              ${isBack ? `<td class="sep">${totCell}</td>` : ''}
             </tr>`;
           }).join('')}
         </tbody>

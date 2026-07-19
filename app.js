@@ -128,6 +128,10 @@ function listenToRound(key) {
       currentHole = d.currentHole;
       recomputeAll();
 
+      // Debug: log raw Firestore scores so we can verify what data is arriving
+      const rawScores = JSON.stringify(d.scores);
+      console.log('[viewer snapshot] seq=' + (d.seq||0) + ' scores=' + rawScores);
+
       // Debug: show seq on readonly banner so we can see if snapshots are in order
       const seqEl = document.getElementById('readonly-seq');
       if (seqEl) seqEl.textContent = ' #' + (d.seq || 0);

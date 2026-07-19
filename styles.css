@@ -525,17 +525,11 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   gap: 12px;
 }
 .login-logo {
-  width: 90px;
-  height: 90px;
+  width: 180px;
+  height: 180px;
   object-fit: contain;
-  border-radius: 20px;
-  margin-bottom: 4px;
-}
-.login-title {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--tx);
+  border-radius: 36px;
+  margin-bottom: 8px;
 }
 .login-subtitle {
   font-size: 15px;

@@ -101,26 +101,12 @@ function syncToFirestore() {
 
 function listenToRound(key) {
   if (roundListener) { roundListener(); roundListener = null; }
-  roundListener = db.collection('activeRounds').doc(key).onSnapshot(
-  { includeMetadataChanges: true },
-  snap => {
+  roundListener = db.collection('activeRounds').doc(key).onSnapshot(snap => {
     if (!snap.exists) return;
-    if (snap.metadata.fromCache) return; // skip stale local cache
     const d = snap.data();
 
     participants = d.participants || {};
-
-    const wasScorekeeper = isScorekeeper;
     isScorekeeper = !!(currentUser && d.scorekeeperUid === currentUser.uid);
-
-    if (!isScorekeeper) {
-      cIdx = d.courseIdx; tIdx = d.teeIdx;
-      players = d.players; stake = d.stake;
-      holeCount = d.holeCount; nineChoice = d.nineChoice;
-      scores = fsToScores(d.scores); holes = d.holes; touched = fsToTouched(d.touched);
-      currentHole = d.currentHole;
-      recomputeAll();
-    }
 
     // Update transfer button & readonly banner
     const transferBtn = document.getElementById('transfer-sk-btn');
@@ -128,15 +114,21 @@ function listenToRound(key) {
     const skNameEl = document.getElementById('readonly-sk-name');
     if (transferBtn) transferBtn.style.display = isScorekeeper ? 'inline-block' : 'none';
     if (readonlyBanner) readonlyBanner.style.display = isScorekeeper ? 'none' : 'flex';
-    if (skNameEl) {
-      const skName = participants[d.scorekeeperUid] || 'scorekeeper';
-      skNameEl.textContent = skName;
-    }
+    if (skNameEl) skNameEl.textContent = participants[d.scorekeeperUid] || 'scorekeeper';
 
-    // Re-render if on round screen
-    if (document.getElementById('sc-round').classList.contains('active')) {
-      if (document.getElementById('tab-holes-wrap').style.display !== 'none') renderHoles();
-      else renderTotals();
+    // Viewers: always sync state from Firestore then re-render
+    if (!isScorekeeper) {
+      cIdx = d.courseIdx; tIdx = d.teeIdx;
+      players = d.players; stake = d.stake;
+      holeCount = d.holeCount; nineChoice = d.nineChoice;
+      scores = fsToScores(d.scores); holes = d.holes; touched = fsToTouched(d.touched);
+      currentHole = d.currentHole;
+      recomputeAll();
+
+      if (document.getElementById('sc-round').classList.contains('active')) {
+        if (document.getElementById('tab-holes-wrap').style.display !== 'none') renderHoles();
+        else renderTotals();
+      }
     }
   });
 }

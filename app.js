@@ -376,6 +376,7 @@ function renderHoles() {
       <div id="hb-${h}"></div>
     </div>
     ${blocked}
+    <div class="totals-section-title">Scorecard</div>
     <div class="mini-sc-card" id="mini-sc"></div>`;
   renderHoleBody(h, ch);
   renderMiniScorecard();

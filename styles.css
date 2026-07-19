@@ -547,6 +547,24 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .home-recent-meta   { font-size: 13px; color: var(--tx2); margin-bottom: 12px }
 .home-recent-pills  { display: flex; flex-wrap: wrap; gap: 6px }
 
+/* ── end round button ── */
+.nav-end-row {
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 10px;
+}
+.end-round-btn {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 12px;
+}
+.end-round-btn:active { opacity: .6 }
+
 /* ── continue round variant ── */
 .home-primary-btn--continue {
   background: var(--green);

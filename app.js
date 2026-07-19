@@ -149,6 +149,16 @@ function goHome() {
   show('sc-home');
 }
 
+function endRound() {
+  if (!confirm('End this round? Your progress will be lost.')) return;
+  clearSession();
+  players = [];
+  scores = []; holes = []; touched = [];
+  currentHole = 0; currentRoundId = null;
+  renderHomeRecent();
+  show('sc-home');
+}
+
 function showTab(t) {
   document.getElementById('tab-holes-wrap').style.display  = t === 'holes'  ? 'flex' : 'none';
   document.getElementById('tab-totals-wrap').style.display = t === 'totals' ? 'flex' : 'none';

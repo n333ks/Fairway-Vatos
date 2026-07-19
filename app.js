@@ -96,8 +96,10 @@ function syncToFirestore() {
   const seq = _syncSeq;
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(() => {
+    const payload = scoresToFS(scores);
+    console.log('[sk write] seq=' + seq + ' scores=' + JSON.stringify(payload));
     db.collection('activeRounds').doc(codeKey(joinCode)).update({
-      scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole, seq
+      scores: payload, holes, touched: touchedToFS(touched), currentHole, seq
     }).catch(e => console.error('sync error', e));
   }, 300);
 }

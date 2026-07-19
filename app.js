@@ -1302,60 +1302,47 @@ function viewRound(id) {
   });
   html += '</div>';
 
-  // Scorecard
-  const pout = par.slice(0,9).reduce((a,b)=>a+b,0);
-  const pin  = par.slice(9).reduce((a,b)=>a+b,0);
-  let thead  = '<thead><tr><th class="stk">Player</th>';
-  for (let h=0;h<9;h++)  thead += `<th>${h+1}</th>`;
-  thead += `<th class="sep">Out</th>`;
-  for (let h=9;h<18;h++) thead += `<th>${h+1}</th>`;
-  thead += `<th class="sep">In</th><th class="sep">Tot</th></tr></thead>`;
+  // Scorecard — use same buildScorecardHalf as live round by temporarily setting globals
+  const _cIdx = cIdx, _tIdx = tIdx, _players = players, _scores = scores,
+        _currentHole = currentHole, _scPage = scorecardPage;
+  cIdx = COURSES.findIndex(x => x.name === r.courseName);
+  if (cIdx < 0) cIdx = 0;
+  tIdx = COURSES[cIdx].tees.findIndex(t => t.n === r.tee);
+  if (tIdx < 0) tIdx = 0;
+  players = r.players;
+  scores  = r.scores;
+  currentHole = -1; // no hole to highlight
+  scorecardPage = 0;
 
-  let tbody = `<tbody><tr class="par-row"><td class="stk">Par</td>`;
-  par.slice(0,9).forEach(p => tbody += `<td>${p}</td>`);
-  tbody += `<td class="sep">${pout}</td>`;
-  par.slice(9).forEach(p => tbody += `<td>${p}</td>`);
-  tbody += `<td class="sep">${pin}</td><td class="sep">${pout+pin}</td></tr>`;
+  const scFront = buildScorecardHalf(0, 9, 'Front Nine', 'Out');
+  const scBack  = buildScorecardHalf(9, 18, 'Back Nine', 'In');
 
-  r.players.forEach((pl, p) => {
-    const name = pname(pl);
-    const sc  = r.scores.map(h => h[p]);
-    const out = sc.slice(0,9).reduce((a,v)=>a+(v??0),0);
-    const inp = sc.slice(9).reduce((a,v)=>a+(v??0),0);
-    const tot = out + inp;
-    const entered = sc.filter(v => v !== null);
-    const entPar  = entered.length ? par.filter((_,h) => sc[h]!==null).reduce((a,b)=>a+b,0) : 0;
-    const diff    = entered.length ? tot - entPar : 0;
-    const diffStr = entered.length===0 ? '—' : diff===0 ? 'E' : (diff>0?'+':'')+diff;
-    const diffCol = diff<0?'var(--green)':diff>0?'var(--red)':'var(--tx2)';
-
-    tbody += `<tr><td class="stk">${name}</td>`;
-    for (let h=0;h<9;h++)  tbody += sc[h]!==null?`<td>${fmtCell(sc[h],par[h])}</td>`:`<td style="color:var(--tx3)">—</td>`;
-    tbody += `<td class="sep">${sc.slice(0,9).some(v=>v!==null)?out:'—'}</td>`;
-    for (let h=9;h<18;h++) tbody += sc[h]!==null?`<td>${fmtCell(sc[h],par[h])}</td>`:`<td style="color:var(--tx3)">—</td>`;
-    tbody += `<td class="sep">${sc.slice(9).some(v=>v!==null)?inp:'—'}</td>
-      <td class="sep" style="font-weight:700">${entered.length?tot:'—'}<br>
-      <span style="font-size:10px;color:${diffCol}">${diffStr}</span></td></tr>`;
-  });
-  tbody += '</tbody>';
+  cIdx = _cIdx; tIdx = _tIdx; players = _players; scores = _scores;
+  currentHole = _currentHole; scorecardPage = _scPage;
 
   html += `<div class="totals-section-title">Scorecard</div>
-    <div style="margin:12px 16px 0"><div class="sc-wrap"><table class="sct">${thead+tbody}</table></div></div>`;
+    <div class="totals-sc-viewport" id="hist-sc-viewport">
+      <div class="totals-sc-track" id="hist-sc-track">
+        ${scFront}${scBack}
+      </div>
+    </div>
+    <div class="mini-sc-dots" style="padding:10px 0 4px">
+      <span class="mini-sc-dot on" id="hist-dot-0"></span>
+      <span class="mini-sc-dot" id="hist-dot-1"></span>
+    </div>`;
 
-  // Hole results
-  html += `<div class="totals-section-title">Hole Results</div><div class="hole-results">`;
-  let anyResult = false;
-  const cs = (() => {
-    // rebuild chains from saved data
-    const tempHoles   = r.holes;
-    const tempPlayers = r.players;
-    function ordR(bh) { return tempPlayers.map((_,i)=>(i+bh)%tempPlayers.length); }
+  // Hole results — perspective-based, first names only
+  const rPlayers = r.players;
+  const myIdxR = currentUser ? rPlayers.findIndex(p => p && p.uid === currentUser.uid) : -1;
+
+  const rChains = (() => {
+    function ordR(bh) { return rPlayers.map((_,i)=>(i+bh)%rPlayers.length); }
     const chains = Array.from({length:18},()=>({n:1,carry:false,f:null,p:null,t:null,betHole:0}));
     let cv=null, betHole=0;
     for (let h=0;h<18;h++) {
       if (cv) { chains[h].n=cv.n; chains[h].carry=true; chains[h].f=cv.f; chains[h].p=cv.p; chains[h].t=cv.t; chains[h].betHole=cv.betHole; }
       else { chains[h].betHole=betHole; }
-      const hole=tempHoles[h], ch=chains[h];
+      const hole=r.holes[h], ch=chains[h];
       const o=ordR(ch.betHole);
       const fi=ch.carry?ch.f:o[0];
       const pi=ch.carry?ch.p:(hole.partner!==null?hole.partner:o[1]);
@@ -1366,42 +1353,80 @@ function viewRound(id) {
     return chains;
   })();
 
+  let anyResult = false;
+  let hrHtml = '';
   for (let h=17;h>=0;h--) {
-    const hole=r.holes[h], ch=cs[h];
+    const hole=r.holes[h], ch=rChains[h];
     const tp=ch.carry?ch.t:hole.type;
     if (!tp) continue;
     anyResult = true;
-    function ordR(bh){return r.players.map((_,i)=>(i+bh)%r.players.length);}
+    const ordR = bh => rPlayers.map((_,i)=>(i+bh)%rPlayers.length);
     const o=ordR(ch.betHole);
     const fi=ch.carry?ch.f:o[0];
     const pi=ch.carry?ch.p:(hole.partner!==null?hole.partner:o[1]);
     const s=(r.stake*ch.n).toFixed(2);
     const re=hole.result;
-    const t1n=`${pname(r.players[fi])} + ${pname(r.players[pi])}`;
-    const t2n=o.filter(i=>i!==fi&&i!==pi).map(i=>pname(r.players[i])).join(' + ');
+
+    // Perspective-based result
+    let myResult = re;
+    if (re && myIdxR >= 0) {
+      if (tp === 'hog') {
+        if (myIdxR !== fi) myResult = re === 'win' ? 'lose' : re === 'lose' ? 'win' : re;
+      } else {
+        const onTeamB = myIdxR !== fi && myIdxR !== pi;
+        if (onTeamB) myResult = re === 'win' ? 'lose' : re === 'lose' ? 'win' : re;
+      }
+    }
+
+    const t1n=`${shortName(rPlayers[fi])} + ${shortName(rPlayers[pi])}`;
+    const t2n=o.filter(i=>i!==fi&&i!==pi).map(i=>shortName(rPlayers[i])).join(' + ');
     let teams;
     if(re==='tie'){teams=`🔄 Carryover`;}
-    else if(tp==='hog'){teams=`🐷 ${pname(r.players[fi])} vs all`;}
+    else if(tp==='hog'){teams=`🐷 ${shortName(rPlayers[fi])}`;}
     else if(re==='win'){teams=`🏆 ${t1n}`;}
     else if(re==='lose'){teams=`🏆 ${t2n}`;}
     else{teams=`${t1n} vs ${t2n}`;}
-    const badge=re==='win'?'win':re==='lose'?'lose':re==='tie'?'tie':'pend';
-    const label=re==='win'?'Win':re==='lose'?'Lose':re==='tie'?'Tie':'—';
+
+    const badge=myResult==='win'?'win':myResult==='lose'?'lose':myResult==='tie'?'tie':'pend';
+    const label=myResult==='win'?'Win':myResult==='lose'?'Lose':myResult==='tie'?'Tie':'—';
     let moneyStr='—';
-    if(re==='win')  moneyStr=tp==='hog'?`+$${(r.stake*ch.n*3).toFixed(2)}`:`+$${s}`;
-    if(re==='lose') moneyStr=tp==='hog'?`−$${(r.stake*ch.n*3).toFixed(2)}`:`−$${s}`;
-    if(re==='tie')  moneyStr='→ next';
-    html += `<div class="hr-row">
+    if(myResult==='win')  moneyStr=tp==='hog'?(myIdxR===fi?`+$${(r.stake*ch.n*3).toFixed(2)}`:`+$${s}`):`+$${s}`;
+    if(myResult==='lose') moneyStr=tp==='hog'?(myIdxR===fi?`−$${(r.stake*ch.n*3).toFixed(2)}`:`−$${s}`):`−$${s}`;
+    if(myResult==='tie')  moneyStr='→ next';
+
+    hrHtml += `<div class="hr-row">
       <span class="hr-num">H${h+1}${ch.n>1?' ×'+ch.n:''}</span>
       <span class="hr-teams">${teams}</span>
       <span class="hr-badge ${badge}">${label}</span>
-      <span class="hr-money ${re==='win'?'pos':re==='lose'?'neg':''}">${moneyStr}</span>
+      <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
     </div>`;
   }
-  if (!anyResult) html += `<div class="hr-row"><span style="color:var(--tx2);font-size:14px">No holes recorded</span></div>`;
-  html += '</div>';
+  if (!anyResult) hrHtml = `<div class="hr-row"><span style="color:var(--tx2);font-size:14px">No holes recorded</span></div>`;
+
+  html += `<div class="totals-section-title">Hole Results</div><div class="hole-results">${hrHtml}</div>`;
+  html += '<div style="height:8px"></div>';
 
   document.getElementById('history-detail-body').innerHTML = html;
+
+  // Wire up scorecard swipe
+  const hvp = document.getElementById('hist-sc-viewport');
+  if (hvp) {
+    let hPage = 0, startX = null;
+    hvp.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive:true});
+    hvp.addEventListener('touchend', e => {
+      if (startX === null) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) > 40) {
+        hPage = dx < 0 ? 1 : 0;
+        const track = document.getElementById('hist-sc-track');
+        if (track) track.style.transform = `translateX(${hPage === 0 ? '0%' : '-50%'})`;
+        document.getElementById('hist-dot-0').classList.toggle('on', hPage === 0);
+        document.getElementById('hist-dot-1').classList.toggle('on', hPage === 1);
+      }
+      startX = null;
+    }, {passive:true});
+  }
+
   show('sc-history-detail');
 }
 

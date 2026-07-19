@@ -96,10 +96,8 @@ function syncToFirestore() {
   const seq = _syncSeq;
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(() => {
-    const payload = scoresToFS(scores);
-    console.log('[sk write] seq=' + seq + ' scores=' + JSON.stringify(payload));
     db.collection('activeRounds').doc(codeKey(joinCode)).update({
-      scores: payload, holes, touched: touchedToFS(touched), currentHole, seq
+      scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole, seq
     }).catch(e => console.error('sync error', e));
   }, 300);
 }
@@ -134,11 +132,6 @@ function listenToRound(key) {
       currentHole = d.currentHole;
       recomputeAll();
 
-      // Debug: log raw Firestore scores so we can verify what data is arriving
-      const rawScores = JSON.stringify(d.scores);
-      console.log('[viewer snapshot] seq=' + (d.seq||0) + ' scores=' + rawScores);
-
-      // Debug: show seq on readonly banner so we can see if snapshots are in order
       const seqEl = document.getElementById('readonly-seq');
       if (seqEl) seqEl.textContent = ' #' + (d.seq || 0);
 

@@ -111,7 +111,13 @@ function listenToRound(key) {
     const d = snap.data();
 
     participants = d.participants || {};
-    isScorekeeper = !!(currentUser && d.scorekeeperUid === currentUser.uid);
+    // Only update isScorekeeper when scorekeeperUid actually changes (transfer)
+    // Don't recalculate on every snapshot — it flips to false if currentUser is
+    // momentarily null when the first snapshot fires after startRound()
+    const snapshotIsSK = !!(currentUser && d.scorekeeperUid === currentUser.uid);
+    if (snapshotIsSK !== isScorekeeper) {
+      isScorekeeper = snapshotIsSK;
+    }
 
     // Update transfer button & readonly banner
     const transferBtn = document.getElementById('transfer-sk-btn');

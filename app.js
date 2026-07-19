@@ -82,10 +82,16 @@ function generateJoinCode() {
 
 function codeKey(code) { return code.replace('-', ''); }
 
+// Firestore doesn't support nested arrays — convert to/from keyed objects
+function scoresToFS(arr)  { const o = {}; arr.forEach((r, i) => o[i] = r); return o; }
+function touchedToFS(arr) { const o = {}; arr.forEach((r, i) => o[i] = r); return o; }
+function fsToScores(o)    { return Object.keys(o).sort((a,b)=>+a - +b).map(k => o[k]); }
+function fsToTouched(o)   { return Object.keys(o).sort((a,b)=>+a - +b).map(k => o[k]); }
+
 function syncToFirestore() {
   if (!joinCode || !isScorekeeper) return;
   db.collection('activeRounds').doc(codeKey(joinCode)).update({
-    scores, holes, touched, currentHole
+    scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole
   }).catch(() => {});
 }
 
@@ -104,7 +110,7 @@ function listenToRound(key) {
       cIdx = d.courseIdx; tIdx = d.teeIdx;
       players = d.players; stake = d.stake;
       holeCount = d.holeCount; nineChoice = d.nineChoice;
-      scores = d.scores; holes = d.holes; touched = d.touched;
+      scores = fsToScores(d.scores); holes = d.holes; touched = fsToTouched(d.touched);
       currentHole = d.currentHole;
     }
 
@@ -176,8 +182,8 @@ async function joinRound() {
     cIdx          = d.courseIdx; tIdx = d.teeIdx;
     players       = d.players;   stake = d.stake;
     holeCount     = d.holeCount; nineChoice = d.nineChoice;
-    scores        = d.scores;    holes = d.holes;
-    touched       = d.touched;   currentHole = d.currentHole;
+    scores        = fsToScores(d.scores);  holes = d.holes;
+    touched       = fsToTouched(d.touched); currentHole = d.currentHole;
     isScorekeeper = d.scorekeeperUid === currentUser.uid;
     scorecardPage = nineChoice === 'back' ? 1 : 0;
 
@@ -559,7 +565,7 @@ async function startRound() {
       joinCode,
       courseIdx: cIdx, teeIdx: tIdx,
       players, stake, holeCount, nineChoice,
-      scores, holes, touched, currentHole,
+      scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole,
       scorekeeperUid: currentUser.uid,
       participants,
       createdBy: currentUser.uid,

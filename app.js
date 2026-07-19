@@ -263,7 +263,9 @@ const COURSES = [{
 ════════════════════════════════ */
 let cIdx        = 0;
 let tIdx        = 2;
-let players     = [];
+let players     = []; // [{name, uid}]
+let selectedPlayers = []; // picker state for setup screen
+let knownUsers  = [];  // [{name, uid}] fetched from Firestore
 let stake       = 0;
 let scores      = [];
 let holes       = [];
@@ -273,6 +275,9 @@ let scorecardPage = 0; // 0=front, 1=back
 let currentRoundId = null;
 let holeCount  = 18;      // 18 or 9
 let nineChoice = 'front'; // 'front' or 'back'
+
+// Compat helper: players can be {name,uid} objects (new) or strings (old history)
+function pname(p) { return typeof p === 'string' ? p : (p && p.name) || 'Player'; }
 
 /* ════════════════════════════════
    CORE LOGIC
@@ -498,14 +503,46 @@ function adjStake(dir) {
   }
 }
 
-function renderPlayerInputs() {
-  document.getElementById('player-inputs').innerHTML = [0,1,2,3].map(i =>
-    `<div class="player-row">
-      <div class="player-num">${i+1}</div>
-      <input type="text" placeholder="Player ${i+1}"
-        oninput="players[${i}]=this.value.trim()||'Player ${i+1}'"
-        autocomplete="off">
-    </div>`).join('');
+async function renderPlayerInputs() {
+  selectedPlayers = [];
+  const el = document.getElementById('player-inputs');
+  el.innerHTML = '<div style="color:var(--tx2);font-size:14px;text-align:center;padding:12px">Loading players…</div>';
+  try {
+    const snap = await db.collection('users').get();
+    knownUsers = snap.docs.map(d => d.data()).sort((a, b) => a.name.localeCompare(b.name));
+  } catch (e) {
+    knownUsers = [];
+  }
+  renderPickerUI();
+}
+
+function renderPickerUI() {
+  const el = document.getElementById('player-inputs');
+  const cards = knownUsers.map(u => {
+    const idx = selectedPlayers.findIndex(p => p.uid === u.uid);
+    const sel = idx >= 0;
+    return `<button class="player-pick-btn${sel ? ' sel' : ''}" onclick="togglePlayer('${u.uid}')">
+      ${sel ? `<span class="player-pick-num">${idx + 1}</span>` : ''}
+      <span class="player-pick-name">${u.name}</span>
+    </button>`;
+  }).join('');
+  const order = selectedPlayers.length
+    ? `<div class="player-pick-order">${selectedPlayers.map((p,i) => `<span class="pick-slot">${i+1}. ${p.name}</span>`).join('')}</div>`
+    : `<div class="player-pick-hint">Tap players in tee order</div>`;
+  el.innerHTML = `<div class="player-pick-grid">${cards}</div>${order}`;
+}
+
+function togglePlayer(uid) {
+  const user = knownUsers.find(u => u.uid === uid);
+  if (!user) return;
+  const idx = selectedPlayers.findIndex(p => p.uid === uid);
+  if (idx >= 0) {
+    selectedPlayers.splice(idx, 1);
+  } else {
+    if (selectedPlayers.length >= 4) return;
+    selectedPlayers.push({ name: user.name, uid: user.uid });
+  }
+  renderPickerUI();
 }
 
 function saveSession() {
@@ -553,8 +590,11 @@ function selNineChoice(c) {
 }
 
 async function startRound() {
-  const inputs = document.querySelectorAll('#player-inputs input');
-  players = [0,1,2,3].map(i => inputs[i].value.trim() || 'Player ' + (i+1));
+  if (selectedPlayers.length < 2) {
+    alert('Select at least 2 players.');
+    return;
+  }
+  players = [...selectedPlayers];
   scores  = Array.from({length:18}, () => players.map(() => null));
   holes   = Array.from({length:18}, () => ({type:null, partner:null, result:null}));
   touched = Array.from({length:18}, () => players.map(() => false));
@@ -567,7 +607,7 @@ async function startRound() {
   // Create live Firestore round
   joinCode = generateJoinCode();
   const key = codeKey(joinCode);
-  const myName = currentUser ? (currentUser.displayName || currentUser.email.split('@')[0]) : players[0];
+  const myName = currentUser ? (currentUser.displayName || currentUser.email.split('@')[0]) : pname(players[0]);
   participants = { [currentUser.uid]: myName };
 
   try {
@@ -641,7 +681,7 @@ function renderHoles() {
       <div class="hole-card-hdr">
         <div>
           <div class="first-tee-lbl" id="hfl-${h}">${ch.carry ? 'Carryover' : 'First Tee'}</div>
-          <div class="first-tee-name" id="hfn-${h}">${priorDone ? players[fi] : '—'}</div>
+          <div class="first-tee-name" id="hfn-${h}">${priorDone ? pname(players[fi]) : '—'}</div>
         </div>
         ${stakeTag}
       </div>
@@ -792,7 +832,7 @@ function scoreRowHTML(h, pi, name) {
 }
 
 function teamBNames(o, fi, pi) {
-  return o.filter(i => i !== fi && i !== pi).map(i => players[i]).join(' + ');
+  return o.filter(i => i !== fi && i !== pi).map(i => pname(players[i])).join(' + ');
 }
 
 function renderHoleBody(h, ch) {
@@ -832,13 +872,13 @@ function renderHoleBody(h, ch) {
     const bestOther = enteredOther.length ? Math.min(...enteredOther) : null;
     html += `
       <div class="team-section team-hog">
-        <div class="team-label">🐷 ${players[fi]} — hogging</div>
-        ${scoreRowHTML(h, fi, players[fi])}
+        <div class="team-label">🐷 ${pname(players[fi])} — hogging</div>
+        ${scoreRowHTML(h, fi, pname(players[fi]))}
       </div>
       <div class="vs-row"><div class="vs-line"></div><span class="vs-txt">VS</span><div class="vs-line"></div></div>
       <div class="team-section team-b">
         <div class="team-label">Opponents</div>
-        ${others.map(i => scoreRowHTML(h, i, players[i])).join('')}
+        ${others.map(i => scoreRowHTML(h, i, pname(players[i]))).join('')}
         <div class="best-row">Best ball <b>${bestOther ?? '—'}</b></div>
       </div>`;
 
@@ -852,10 +892,10 @@ function renderHoleBody(h, ch) {
 
     const partnerPicker = ch.carry ? '' : `
       <div class="partner-row">
-        <div class="partner-lbl">Partner for ${players[fi]}</div>
+        <div class="partner-lbl">Partner for ${pname(players[fi])}</div>
         <div class="pchip-row">
           ${o.slice(1).map(i =>
-            `<button class="pchip${pi === i ? ' sel' : ''}" onclick="setPartner(${h},${i})">${players[i]}</button>`
+            `<button class="pchip${pi === i ? ' sel' : ''}" onclick="setPartner(${h},${i})">${pname(players[i])}</button>`
           ).join('')}
         </div>
       </div>`;
@@ -863,14 +903,14 @@ function renderHoleBody(h, ch) {
     html += `
       ${partnerPicker}
       <div class="team-section team-a">
-        <div class="team-label">Team A — ${players[fi]} + ${players[pi]}</div>
-        ${t1.map(i => scoreRowHTML(h, i, players[i])).join('')}
+        <div class="team-label">Team A — ${pname(players[fi])} + ${pname(players[pi])}</div>
+        ${t1.map(i => scoreRowHTML(h, i, pname(players[i]))).join('')}
         <div class="best-row">Best ball <b>${b1 ?? '—'}</b></div>
       </div>
       <div class="vs-row"><div class="vs-line"></div><span class="vs-txt">VS</span><div class="vs-line"></div></div>
       <div class="team-section team-b">
         <div class="team-label">Team B — ${teamBNames(o, fi, pi)}</div>
-        ${t2.map(i => scoreRowHTML(h, i, players[i])).join('')}
+        ${t2.map(i => scoreRowHTML(h, i, pname(players[i]))).join('')}
         <div class="best-row">Best ball <b>${b2 ?? '—'}</b></div>
       </div>`;
 
@@ -878,7 +918,7 @@ function renderHoleBody(h, ch) {
     html += `
       <div class="team-section">
         <div class="team-label" style="color:var(--tx2)">Choose Hog or 2v2 above</div>
-        ${o.map(i => scoreRowHTML(h, i, players[i])).join('')}
+        ${o.map(i => scoreRowHTML(h, i, pname(players[i]))).join('')}
       </div>`;
   }
 
@@ -890,12 +930,12 @@ function renderHoleBody(h, ch) {
 
     if (tp === 'hog') {
       const hogWin = (stake * ch.n * 3).toFixed(2);
-      if      (r === 'win')  { txt = `🐷 ${players[fi]} wins · +$${hogWin}`; cls = 'rb-win'; }
-      else if (r === 'lose') { txt = `🐷 ${players[fi]} loses · −$${hogWin}`; cls = 'rb-lose'; }
+      if      (r === 'win')  { txt = `🐷 ${pname(players[fi])} wins · +$${hogWin}`; cls = 'rb-win'; }
+      else if (r === 'lose') { txt = `🐷 ${pname(players[fi])} loses · −$${hogWin}`; cls = 'rb-lose'; }
       else if (r === 'tie')  { txt = `Tied · $${ns}/player carries to hole ${nextH}`; cls = 'rb-tie'; }
       else                   { txt = 'Enter scores above'; }
     } else {
-      const aName = `${players[fi]} + ${players[pi]}`;
+      const aName = `${pname(players[fi])} + ${pname(players[pi])}`;
       const bName = teamBNames(o, fi, pi);
       if      (r === 'win')  { txt = `${aName} win · +$${s} each`; cls = 'rb-win'; }
       else if (r === 'lose') { txt = `${bName} win · +$${s} each`; cls = 'rb-lose'; }
@@ -913,7 +953,7 @@ function renderHoleBody(h, ch) {
   const nm  = document.getElementById('hfn-' + h);
   const priorDone = h === 0 || holes[h-1].result !== null;
   if (lbl) lbl.textContent = ch.carry ? 'Carryover' : 'First Tee';
-  if (nm)  nm.textContent  = priorDone ? players[fi] : '—';
+  if (nm)  nm.textContent  = priorDone ? pname(players[fi]) : '—';
 }
 
 function adjScore(h, p, d) {
@@ -971,12 +1011,12 @@ function renderTotals() {
   const pout  = par.slice(0,9).reduce((a,b) => a+b, 0);
   const pin   = par.slice(9).reduce((a,b) => a+b, 0);
 
-  document.getElementById('money-grid').innerHTML = players.map((name, i) => {
+  document.getElementById('money-grid').innerHTML = players.map((p, i) => {
     const amt = money[i];
     const cls = amt > 0 ? 'pos' : amt < 0 ? 'neg' : 'neu';
     const disp = (amt >= 0 ? '+' : '−') + '$' + Math.abs(amt).toFixed(2);
     return `<div class="money-card">
-      <div class="money-name">${name}</div>
+      <div class="money-name">${pname(p)}</div>
       <div class="money-amt ${cls}">${disp}</div>
     </div>`;
   }).join('');
@@ -1028,13 +1068,13 @@ function renderTotals() {
     const s  = (stake * ch.n).toFixed(2);
     const r  = hole.result;
 
-    const t1Names = `${players[fi]} + ${players[pi]}`;
+    const t1Names = `${pname(players[fi])} + ${pname(players[pi])}`;
     const t2Names = teamBNames(o, fi, pi);
     let teams;
     if (r === 'tie') {
       teams = `🔄 Carryover`;
     } else if (tp === 'hog') {
-      teams = `🐷 ${players[fi]} vs all`;
+      teams = `🐷 ${pname(players[fi])} vs all`;
     } else if (r === 'win') {
       teams = `🏆 ${t1Names}`;
     } else if (r === 'lose') {
@@ -1148,11 +1188,11 @@ function showHistory() {
       const d    = new Date(r.date);
       const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
       const time = d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
-      const pills = r.players.map((name, i) => {
+      const pills = r.players.map((p, i) => {
         const m   = r.money[i];
         const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
         const amt = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
-        return `<span class="history-money-pill ${cls}">${name} ${amt}</span>`;
+        return `<span class="history-money-pill ${cls}">${pname(p)} ${amt}</span>`;
       }).join('');
       return `<div class="history-card" onclick="viewRound(${r.id})">
         <div class="history-card-top">
@@ -1187,12 +1227,12 @@ function viewRound(id) {
 
   // Money cards
   let html = '<div class="money-grid">';
-  r.players.forEach((name, i) => {
+  r.players.forEach((p, i) => {
     const m   = money[i];
     const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
     const disp = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
     html += `<div class="money-card">
-      <div class="money-name">${name}</div>
+      <div class="money-name">${pname(p)}</div>
       <div class="money-amt ${cls}">${disp}</div>
     </div>`;
   });
@@ -1213,7 +1253,8 @@ function viewRound(id) {
   par.slice(9).forEach(p => tbody += `<td>${p}</td>`);
   tbody += `<td class="sep">${pin}</td><td class="sep">${pout+pin}</td></tr>`;
 
-  r.players.forEach((name, p) => {
+  r.players.forEach((pl, p) => {
+    const name = pname(pl);
     const sc  = r.scores.map(h => h[p]);
     const out = sc.slice(0,9).reduce((a,v)=>a+(v??0),0);
     const inp = sc.slice(9).reduce((a,v)=>a+(v??0),0);
@@ -1272,11 +1313,11 @@ function viewRound(id) {
     const pi=ch.carry?ch.p:(hole.partner!==null?hole.partner:o[1]);
     const s=(r.stake*ch.n).toFixed(2);
     const re=hole.result;
-    const t1n=`${r.players[fi]} + ${r.players[pi]}`;
-    const t2n=o.filter(i=>i!==fi&&i!==pi).map(i=>r.players[i]).join(' + ');
+    const t1n=`${pname(r.players[fi])} + ${pname(r.players[pi])}`;
+    const t2n=o.filter(i=>i!==fi&&i!==pi).map(i=>pname(r.players[i])).join(' + ');
     let teams;
     if(re==='tie'){teams=`🔄 Carryover`;}
-    else if(tp==='hog'){teams=`🐷 ${r.players[fi]} vs all`;}
+    else if(tp==='hog'){teams=`🐷 ${pname(r.players[fi])} vs all`;}
     else if(re==='win'){teams=`🏆 ${t1n}`;}
     else if(re==='lose'){teams=`🏆 ${t2n}`;}
     else{teams=`${t1n} vs ${t2n}`;}
@@ -1323,10 +1364,11 @@ function showHandicap() {
   const playerData = {};
   hist.forEach(r => {
     if (!r.scoreDiffs) return;
-    r.players.forEach((name, i) => {
+    r.players.forEach((pl, i) => {
       if (r.scoreDiffs[i] == null) return;
-      if (!playerData[name]) playerData[name] = [];
-      playerData[name].push({ diff: r.scoreDiffs[i], date: r.date, course: r.courseSub, tee: r.tee });
+      const key = (pl && pl.uid) ? pl.uid : pname(pl);
+      if (!playerData[key]) playerData[key] = { name: pname(pl), diffs: [] };
+      playerData[key].diffs.push({ diff: r.scoreDiffs[i], date: r.date, course: r.courseSub, tee: r.tee });
     });
   });
 
@@ -1339,8 +1381,10 @@ function showHandicap() {
     return;
   }
 
-  el.innerHTML = names.map(name => {
-    const rounds = playerData[name]; // newest first from hist order
+  el.innerHTML = names.map(key => {
+    const entry  = playerData[key];
+    const rounds = entry.diffs;
+    const dname  = entry.name;
     const diffs  = rounds.slice(0, 20).map(r => r.diff);
     const idx    = calcHandicapIndex(diffs);
     const needed = Math.max(0, 3 - diffs.length);
@@ -1360,7 +1404,7 @@ function showHandicap() {
 
     return `<div class="hdcp-card">
       <div class="hdcp-card-hdr">
-        <div class="hdcp-name">${name}</div>
+        <div class="hdcp-name">${dname}</div>
         <div>${idxStr}</div>
       </div>
       <div class="hdcp-rounds-label">${diffs.length} round${diffs.length!==1?'s':''} · best ${calcBestCount(Math.min(diffs.length,20))} used</div>
@@ -1397,15 +1441,17 @@ function showLeaderboard() {
   // Aggregate per player: total money, rounds played, wins (holes won)
   const stats = {};
   hist.forEach(r => {
-    r.players.forEach((name, i) => {
-      if (!stats[name]) stats[name] = { money: 0, rounds: 0, wins: 0, losses: 0 };
-      stats[name].money  += r.money[i];
-      stats[name].rounds += 1;
+    r.players.forEach((pl, i) => {
+      const key  = (pl && pl.uid) ? pl.uid : pname(pl);
+      const name = pname(pl);
+      if (!stats[key]) stats[key] = { name, money: 0, rounds: 0, wins: 0, losses: 0 };
+      stats[key].money  += r.money[i];
+      stats[key].rounds += 1;
       // count hole wins from holes array
       if (r.holes) {
         r.holes.forEach(h => {
-          if (h.result === 'win')  stats[name].wins   += 1;
-          if (h.result === 'lose') stats[name].losses += 1;
+          if (h.result === 'win')  stats[key].wins   += 1;
+          if (h.result === 'lose') stats[key].losses += 1;
         });
       }
     });
@@ -1415,7 +1461,8 @@ function showLeaderboard() {
 
   const medals = ['🥇', '🥈', '🥉'];
 
-  const rows = sorted.map(([name, s], idx) => {
+  const rows = sorted.map(([key, s], idx) => {
+    const name = s.name;
     const cls    = s.money > 0 ? 'pos' : s.money < 0 ? 'neg' : 'neu';
     const disp   = (s.money >= 0 ? '+' : '−') + '$' + Math.abs(s.money).toFixed(2);
     const avg    = s.rounds ? (s.money / s.rounds) : 0;
@@ -1455,7 +1502,7 @@ function renderHomeRecent() {
       const courseSub  = course ? course.sub  : '';
       const tee        = course ? course.tees[s.tIdx].n : '';
       const holesIn    = s.touched.filter(h => h.every(t => t)).length;
-      const playerList = s.players.join(', ');
+      const playerList = s.players.map(p => pname(p)).join(', ');
       primaryEl.innerHTML = `<button class="home-primary-btn home-primary-btn--continue" onclick="continueRound()">
         <div class="home-primary-icon">⛳</div>
         <div class="home-primary-text">
@@ -1484,11 +1531,11 @@ function renderHomeRecent() {
   const r    = hist[0];
   const d    = new Date(r.date);
   const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-  const pills = r.players.map((name, i) => {
+  const pills = r.players.map((p, i) => {
     const m   = r.money[i];
     const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
     const amt = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
-    return `<span class="history-money-pill ${cls}">${name} ${amt}</span>`;
+    return `<span class="history-money-pill ${cls}">${pname(p)} ${amt}</span>`;
   }).join('');
   recentEl.innerHTML = `<div class="home-recent-card" onclick="viewRound(${r.id}); show('sc-history-detail')">
     <div class="home-recent-hdr">
@@ -1510,6 +1557,8 @@ function renderHomeRecent() {
     currentUser = user;
     if (user) {
       const displayName = user.displayName || user.email.split('@')[0];
+      // Register in users collection so others can pick us in round setup
+      db.collection('users').doc(user.uid).set({ name: displayName, uid: user.uid }, { merge: true });
       const signoutBtn = document.getElementById('home-signout');
       if (signoutBtn) signoutBtn.title = `Signed in as ${displayName}`;
       renderCourses();

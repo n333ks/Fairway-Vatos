@@ -111,12 +111,10 @@ function listenToRound(key) {
     const d = snap.data();
 
     participants = d.participants || {};
-    // Only update isScorekeeper when scorekeeperUid actually changes (transfer)
-    // Don't recalculate on every snapshot — it flips to false if currentUser is
-    // momentarily null when the first snapshot fires after startRound()
-    const snapshotIsSK = !!(currentUser && d.scorekeeperUid === currentUser.uid);
-    if (snapshotIsSK !== isScorekeeper) {
-      isScorekeeper = snapshotIsSK;
+    // Only recalculate isScorekeeper when currentUser is loaded — if it's null
+    // (auth hasn't restored yet) we'd incorrectly flip the scorekeeper to viewer
+    if (currentUser) {
+      isScorekeeper = d.scorekeeperUid === currentUser.uid;
     }
 
     // Update transfer button & readonly banner

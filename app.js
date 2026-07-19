@@ -575,7 +575,7 @@ async function startRound() {
     listenToRound(key);
     showJoincodeOverlay(joinCode);
   } catch (e) {
-    alert('Firestore error: ' + (e.code || e.message || JSON.stringify(e)));
+    console.error('Firestore error:', e);
     joinCode = null;
     isScorekeeper = true;
   }

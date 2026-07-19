@@ -542,13 +542,6 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-.home-sec-btn--wide {
-  grid-column: 1 / -1;
-  flex-direction: row;
-  justify-content: center;
-  gap: 10px;
-  padding: 16px;
-}
 .home-sec-btn {
   background: var(--bg2);
   border: none; border-radius: var(--r);
@@ -617,17 +610,35 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 /* ── totals swipe scorecard ── */
 .totals-sc-viewport {
   overflow: hidden;
-  margin: 0;
+  width: 100%;
+  /* prevent this element from contributing to page horizontal scroll */
+  contain: layout;
 }
 .totals-sc-track {
   display: flex;
+  /* each half = 100vw; track = 200vw but clipped by viewport overflow:hidden */
   width: 200%;
   transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+  will-change: transform;
 }
 .totals-sc-half {
-  width: 50%;
+  width: 50%; /* 50% of 200% track = 100% of viewport */
   flex-shrink: 0;
+  /* no overflow-x here — table must fit in the width */
+  overflow: hidden;
 }
+/* inside the totals swipe, tables fill width with fixed layout — no inner scroll */
+.totals-sc-half .sc-wrap {
+  overflow-x: hidden;
+  margin: 0 16px;
+  box-shadow: var(--shadow);
+}
+.totals-sc-half .sct {
+  table-layout: fixed;
+  width: 100%;
+}
+.totals-sc-half .sct .stk { width: 52px }
+.totals-sc-half .sct .sep { width: 36px }
 
 /* ── totals scorecard split layout ── */
 .sc-half-label {

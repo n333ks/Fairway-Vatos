@@ -42,7 +42,7 @@ body {
 }
 
 /* ── screens ── */
-.screen { display:none; flex-direction:column; min-height:100dvh }
+.screen { display:none; flex-direction:column; height:100dvh; overflow:hidden }
 .screen.active { display:flex }
 
 /* ── navigation bar ── */
@@ -481,7 +481,7 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   backdrop-filter: blur(20px);
   border-top: 0.5px solid var(--sep);
   padding-bottom: var(--sb);
-  position:sticky; bottom:0; z-index:10;
+  flex-shrink:0;
 }
 .tab-btn {
   flex:1; padding:10px 8px 8px;

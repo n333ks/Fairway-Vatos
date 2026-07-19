@@ -1,4 +1,70 @@
 /* ════════════════════════════════
+   FIREBASE
+════════════════════════════════ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCHA73BCTOC9TLGjPmHcqh_6A14wtPsiR4",
+  authDomain: "fairway-vatos.firebaseapp.com",
+  projectId: "fairway-vatos",
+  storageBucket: "fairway-vatos.firebasestorage.app",
+  messagingSenderId: "774976718673",
+  appId: "1:774976718673:web:c28a5bf0c4d6af27feb570"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+let currentUser = null;
+let loginMode   = 'signin'; // 'signin' or 'create'
+
+function emailFor(name) {
+  return name.trim().toLowerCase().replace(/\s+/g, '.') + '@fairwayvatos.app';
+}
+
+function toggleLoginMode() {
+  loginMode = loginMode === 'signin' ? 'create' : 'signin';
+  const isCreate = loginMode === 'create';
+  document.getElementById('login-submit-btn').textContent  = isCreate ? 'Create Account' : 'Sign In';
+  document.getElementById('login-toggle-btn').textContent  = isCreate ? 'Back to Sign In' : 'Create Account';
+  document.getElementById('login-subtitle').textContent    = isCreate ? 'Create your account' : 'Sign in to continue';
+  document.getElementById('login-error').textContent = '';
+}
+
+function submitLogin() {
+  const name = document.getElementById('login-name').value.trim();
+  const pass = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  if (!name) { errEl.textContent = 'Enter your name.'; return; }
+  if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+
+  const email = emailFor(name);
+  const btn   = document.getElementById('login-submit-btn');
+  btn.disabled = true;
+  btn.textContent = loginMode === 'create' ? 'Creating…' : 'Signing in…';
+
+  const action = loginMode === 'create'
+    ? auth.createUserWithEmailAndPassword(email, pass).then(cred => cred.user.updateProfile({ displayName: name }))
+    : auth.signInWithEmailAndPassword(email, pass);
+
+  action.catch(err => {
+    btn.disabled = false;
+    btn.textContent = loginMode === 'create' ? 'Create Account' : 'Sign In';
+    const msg = {
+      'auth/user-not-found':    'No account found. Create one below.',
+      'auth/wrong-password':    'Incorrect password.',
+      'auth/email-already-in-use': 'Name already taken. Sign in instead.',
+      'auth/invalid-credential':   'Name or password incorrect.',
+    }[err.code] || 'Something went wrong. Try again.';
+    errEl.textContent = msg;
+  });
+}
+
+function logoutUser() {
+  if (!confirm('Sign out?')) return;
+  auth.signOut();
+}
+
+/* ════════════════════════════════
    COURSE DATA
 ════════════════════════════════ */
 const COURSES = [{
@@ -1224,6 +1290,25 @@ function renderHomeRecent() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
-  renderCourses();
-  renderHomeRecent();
+
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    if (user) {
+      const displayName = user.displayName || user.email.split('@')[0];
+      const signoutBtn = document.getElementById('home-signout');
+      if (signoutBtn) signoutBtn.title = `Signed in as ${displayName}`;
+      renderCourses();
+      renderHomeRecent();
+      show('sc-home');
+    } else {
+      loginMode = 'signin';
+      document.getElementById('login-submit-btn').textContent = 'Sign In';
+      document.getElementById('login-toggle-btn').textContent = 'Create Account';
+      document.getElementById('login-subtitle').textContent   = 'Sign in to continue';
+      document.getElementById('login-name').value     = '';
+      document.getElementById('login-password').value = '';
+      document.getElementById('login-error').textContent = '';
+      show('sc-login');
+    }
+  });
 })();

@@ -15,12 +15,35 @@
 <body>
 
 <!-- ════════════════════════════════
+     SCREEN 0 — LOGIN
+════════════════════════════════ -->
+<div class="screen active" id="sc-login">
+  <div class="login-wrap">
+    <img src="icon.png" alt="Fairway Vatos" class="login-logo">
+    <div class="login-title">Fairway Vatos</div>
+    <div class="login-subtitle">Sign in to continue</div>
+
+    <div class="login-card" id="login-fields">
+      <input class="login-input" id="login-name" type="text" placeholder="Your name"
+             autocomplete="off" autocorrect="off" autocapitalize="words">
+      <div class="login-divider"></div>
+      <input class="login-input" id="login-password" type="password" placeholder="Password">
+    </div>
+    <div class="login-error" id="login-error"></div>
+
+    <button class="primary-btn login-action-btn" id="login-submit-btn" onclick="submitLogin()">Sign In</button>
+    <button class="login-toggle-btn" id="login-toggle-btn" onclick="toggleLoginMode()">Create Account</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
      SCREEN 1 — HOME
 ════════════════════════════════ -->
-<div class="screen active" id="sc-home">
+<div class="screen" id="sc-home">
   <div class="home-safe-top"></div>
   <div class="home-hero">
     <img src="icon.png" alt="Fairway Vatos" class="hero-logo">
+    <button class="home-signout-btn" onclick="logoutUser()" id="home-signout">Sign Out</button>
   </div>
   <div class="home-body">
 
@@ -232,6 +255,8 @@
   <div class="content" id="leaderboard-body" style="padding-bottom:32px"></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

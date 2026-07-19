@@ -1064,7 +1064,7 @@ function renderTotals() {
   }
 
   let hr = '';
-  for (let h = 0; h < 18; h++) {
+  for (let h = lastHole(); h >= firstHole(); h--) {
     const hole = holes[h], ch = cs[h];
     const tp   = ch.carry ? ch.t : hole.type;
     if (!tp) continue;
@@ -1308,7 +1308,7 @@ function viewRound(id) {
     return chains;
   })();
 
-  for (let h=0;h<18;h++) {
+  for (let h=17;h>=0;h--) {
     const hole=r.holes[h], ch=cs[h];
     const tp=ch.carry?ch.t:hole.type;
     if (!tp) continue;

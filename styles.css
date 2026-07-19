@@ -614,6 +614,21 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   box-shadow: 0 4px 16px rgba(52,199,89,0.3);
 }
 
+/* ── totals swipe scorecard ── */
+.totals-sc-viewport {
+  overflow: hidden;
+  margin: 0;
+}
+.totals-sc-track {
+  display: flex;
+  width: 200%;
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+}
+.totals-sc-half {
+  width: 50%;
+  flex-shrink: 0;
+}
+
 /* ── totals scorecard split layout ── */
 .sc-half-label {
   font-size: 13px; font-weight: 600; color: var(--tx2);

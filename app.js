@@ -692,22 +692,42 @@ function renderTotals() {
     </div>`;
   }).join('');
 
-  function buildHalf(startH, endH, label, totalLabel) {
+  function buildTotalsHalf(startH, endH, halfLabel, colLabel) {
+    const isBack  = startH === 9;
     const halfPar = par.slice(startH, endH).reduce((a, b) => a + b, 0);
+    const grandPar = par.reduce((a, b) => a + b, 0);
+
     let thead2 = `<thead><tr><th class="stk">Player</th>`;
     for (let h = startH; h < endH; h++) thead2 += `<th>${h+1}</th>`;
-    thead2 += `<th class="sep">${totalLabel}</th></tr></thead>`;
+    thead2 += `<th class="sep">${colLabel}</th>`;
+    if (isBack) thead2 += `<th class="sep">Tot</th>`;
+    thead2 += `</tr></thead>`;
 
     let tbody2 = '<tbody>';
     tbody2 += `<tr class="par-row"><td class="stk">Par</td>`;
     par.slice(startH, endH).forEach(p => tbody2 += `<td>${p}</td>`);
-    tbody2 += `<td class="sep">${halfPar}</td></tr>`;
+    tbody2 += `<td class="sep">${halfPar}</td>`;
+    if (isBack) tbody2 += `<td class="sep">${grandPar}</td>`;
+    tbody2 += `</tr>`;
 
     players.forEach((name, p) => {
-      const sc   = scores.map(h => h[p]);
-      const half = sc.slice(startH, endH).reduce((a, v) => a + (v ?? 0), 0);
-      const enteredHalf = sc.slice(startH, endH).filter(v => v !== null);
-      const halfDisp = enteredHalf.length ? half : '—';
+      const sc = scores.map(h => h[p]);
+      const enteredHalf = Array.from({length: endH - startH}, (_, i) => startH + i).filter(h => sc[h] !== null);
+      const halfSum  = enteredHalf.reduce((a, h) => a + sc[h], 0);
+      const halfDisp = enteredHalf.length ? halfSum : '—';
+
+      let grandCell = '—';
+      if (isBack) {
+        const allEntered = Array.from({length:18}, (_,i)=>i).filter(h => sc[h] !== null);
+        if (allEntered.length) {
+          const grandTot  = allEntered.reduce((a, h) => a + sc[h], 0);
+          const grandEntP = allEntered.reduce((a, h) => a + par[h], 0);
+          const grandDiff = grandTot - grandEntP;
+          const grandCol  = grandDiff < 0 ? 'var(--green)' : grandDiff > 0 ? 'var(--red)' : 'var(--tx2)';
+          const grandDStr = grandDiff === 0 ? 'E' : (grandDiff > 0 ? '+' : '') + grandDiff;
+          grandCell = `${grandTot}<br><span style="font-size:10px;color:${grandCol}">${grandDStr}</span>`;
+        }
+      }
 
       tbody2 += `<tr><td class="stk">${name}</td>`;
       for (let h = startH; h < endH; h++) {
@@ -727,41 +747,49 @@ function renderTotals() {
                    onTie      ? 'background:rgba(255,159,10,0.12)' : '';
         tbody2 += `<td style="${bg}">${fmtCell(sc[h], par[h])}</td>`;
       }
-      tbody2 += `<td class="sep">${halfDisp}</td></tr>`;
+      tbody2 += `<td class="sep" style="font-weight:700">${halfDisp}</td>`;
+      if (isBack) tbody2 += `<td class="sep" style="font-weight:700">${grandCell}</td>`;
+      tbody2 += `</tr>`;
     });
-
-    // Total row
-    tbody2 += `<tr class="par-row"><td class="stk">Tot</td>`;
-    for (let h = startH; h < endH; h++) tbody2 += `<td></td>`;
-    const totalPar = par.slice(startH, endH).reduce((a,b)=>a+b,0);
-    players.forEach((name, p) => {/* totals printed below */});
-    tbody2 += `<td class="sep"></td></tr>`;
     tbody2 += '</tbody>';
-    return `<div class="sc-half-label">${label}</div><div class="sc-wrap"><table class="sct">${thead2}${tbody2}</table></div>`;
+
+    return `<div class="totals-sc-half">
+      <div class="sc-half-label">${halfLabel}</div>
+      <div class="sc-wrap" style="margin:0 16px"><table class="sct">${thead2}${tbody2}</table></div>
+    </div>`;
   }
 
-  // Totals summary row (below both halves)
-  const playerTotals = players.map((name, p) => {
-    const sc  = scores.map(h => h[p]);
-    const out = sc.slice(0,9).reduce((a,v)=>a+(v??0),0);
-    const inp = sc.slice(9).reduce((a,v)=>a+(v??0),0);
-    const tot = out + inp;
-    const entered = sc.filter(v => v !== null);
-    const enteredPar = entered.length ? par.filter((_,h)=>sc[h]!==null).reduce((a,b)=>a+b,0) : 0;
-    const diff = entered.length ? tot - enteredPar : 0;
-    const diffStr = entered.length === 0 ? '—' : diff === 0 ? 'E' : (diff > 0 ? '+' : '') + diff;
-    const diffColor = diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--red)' : 'var(--tx2)';
-    return `<div class="sc-total-row">
-      <span class="sc-total-name">${name}</span>
-      <span class="sc-total-val">${entered.length ? tot : '—'}</span>
-      <span class="sc-total-diff" style="color:${diffColor}">${diffStr}</span>
+  const scPage = scorecardPage;
+  const offset = scPage === 0 ? '0%' : '-50%';
+  document.getElementById('sc-table').innerHTML = `
+    <div class="totals-sc-viewport">
+      <div class="totals-sc-track" id="totals-sc-track" style="transform:translateX(${offset})">
+        ${buildTotalsHalf(0, 9, 'Front Nine', 'Out')}
+        ${buildTotalsHalf(9, 18, 'Back Nine', 'In')}
+      </div>
+    </div>
+    <div class="mini-sc-dots" style="padding:10px 0 4px">
+      <span class="mini-sc-dot${scPage===0?' on':''}"></span>
+      <span class="mini-sc-dot${scPage===1?' on':''}"></span>
     </div>`;
-  }).join('');
 
-  document.getElementById('sc-table').innerHTML =
-    buildHalf(0, 9, 'Front Nine', 'Out') +
-    buildHalf(9, 18, 'Back Nine', 'In') +
-    `<div class="sc-totals-summary">${playerTotals}</div>`;
+  // Swipe gesture on totals scorecard
+  const tvp = document.querySelector('.totals-sc-viewport');
+  if (tvp) {
+    let startX = null;
+    tvp.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive:true});
+    tvp.addEventListener('touchend', e => {
+      if (startX === null) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) > 40) {
+        scorecardPage = dx < 0 ? 1 : 0;
+        const track = document.getElementById('totals-sc-track');
+        if (track) track.style.transform = `translateX(${scorecardPage === 0 ? '0%' : '-50%'})`;
+        document.querySelectorAll('#sc-table .mini-sc-dot').forEach((d, i) => d.classList.toggle('on', i === scorecardPage));
+      }
+      startX = null;
+    }, {passive:true});
+  }
 
   let hr = '';
   for (let h = 0; h < 18; h++) {

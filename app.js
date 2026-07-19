@@ -377,7 +377,7 @@ function renderHoles() {
     </div>
     ${blocked}
     <div class="totals-section-title">Scorecard</div>
-    <div class="mini-sc-card" id="mini-sc"></div>`;
+    <div id="mini-sc"></div>`;
   renderHoleBody(h, ch);
   renderMiniScorecard();
 }
@@ -396,70 +396,65 @@ function setSCPage(p) {
   document.querySelectorAll('.mini-sc-dot').forEach((d, i) => d.classList.toggle('on', i === p));
 }
 
-function buildMiniHalf(startH, label) {
+function buildScorecardHalf(startH, endH, halfLabel, colLabel) {
+  const c      = COURSES[cIdx];
+  const par    = c.par;
   const isBack = startH === 9;
-  const c   = COURSES[cIdx];
-  const par = c.par;
-  const hrs = Array.from({length:9}, (_, i) => startH + i);
-  const frontHrs = [0,1,2,3,4,5,6,7,8];
-  const parTotal    = hrs.reduce((s, h) => s + par[h], 0);
-  const parFrontTot = frontHrs.reduce((s, h) => s + par[h], 0);
-  const parGrandTot = par.reduce((s, p) => s + p, 0);
+  const halfPar  = par.slice(startH, endH).reduce((a, b) => a + b, 0);
+  const grandPar = par.reduce((a, b) => a + b, 0);
 
-  return `<div class="mini-sc-half">
-    <div class="sc-wrap" style="margin:0">
-      <table class="sct">
-        <thead><tr>
-          <th class="stk">Hole</th>
-          ${hrs.map(h => `<th${h===currentHole?' class="mini-cur"':''}>${h+1}</th>`).join('')}
-          <th class="sep">${label}</th>
-          ${isBack ? `<th class="sep">Tot</th>` : ''}
-        </tr></thead>
-        <tbody>
-          <tr class="par-row">
-            <td class="stk">Par</td>
-            ${hrs.map(h => `<td>${par[h]}</td>`).join('')}
-            <td class="sep">${parTotal}</td>
-            ${isBack ? `<td class="sep">${parGrandTot}</td>` : ''}
-          </tr>
-          ${players.map((name, p) => {
-            const entered = hrs.filter(h => scores[h][p] !== null);
-            const sub     = entered.reduce((s, h) => s + scores[h][p], 0);
-            const subPar  = entered.reduce((s, h) => s + par[h], 0);
-            const diff    = sub - subPar;
-            const diffStr = diff === 0 ? 'E' : (diff > 0 ? '+' : '') + diff;
-            const diffCol = diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--red)' : 'var(--tx2)';
-            const subCell = entered.length
-              ? `<div>${sub}</div><div style="font-size:9px;color:${diffCol}">${diffStr}</div>`
-              : `<div>—</div><div style="font-size:9px;color:var(--tx3)">—</div>`;
+  let thead = `<thead><tr><th class="stk">Player</th>`;
+  for (let h = startH; h < endH; h++)
+    thead += `<th${h===currentHole?' class="mini-cur"':''}>${h+1}</th>`;
+  thead += `<th class="sep">${colLabel}</th>`;
+  if (isBack) thead += `<th class="sep">Tot</th>`;
+  thead += `</tr></thead>`;
 
-            let totCell = `<div>—</div><div style="font-size:9px;color:var(--tx3)">—</div>`;
-            if (isBack) {
-              const frontEntered = frontHrs.filter(h => scores[h][p] !== null);
-              const frontSub = frontEntered.reduce((s, h) => s + scores[h][p], 0);
-              const allEntered = [...frontHrs, ...hrs].filter(h => scores[h][p] !== null);
-              const grandTot = allEntered.reduce((s, h) => s + scores[h][p], 0);
-              const grandPar = allEntered.reduce((s, h) => s + par[h], 0);
-              const grandDiff = grandTot - grandPar;
-              const grandDiffStr = grandDiff === 0 ? 'E' : (grandDiff > 0 ? '+' : '') + grandDiff;
-              const grandCol = grandDiff < 0 ? 'var(--green)' : grandDiff > 0 ? 'var(--red)' : 'var(--tx2)';
-              if (allEntered.length) totCell = `<div>${grandTot}</div><div style="font-size:9px;color:${grandCol}">${grandDiffStr}</div>`;
-            }
+  let tbody = `<tbody><tr class="par-row"><td class="stk">Par</td>`;
+  par.slice(startH, endH).forEach(p => tbody += `<td>${p}</td>`);
+  tbody += `<td class="sep">${halfPar}</td>`;
+  if (isBack) tbody += `<td class="sep">${grandPar}</td>`;
+  tbody += `</tr>`;
 
-            const shortName = name.split(' ')[0].slice(0, 8);
-            return `<tr>
-              <td class="stk">${shortName}</td>
-              ${hrs.map(h => scores[h][p] !== null
-                ? `<td>${fmtCell(scores[h][p], par[h])}</td>`
-                : `<td><div>—</div><div style="font-size:9px;color:var(--tx3)">—</div></td>`
-              ).join('')}
-              <td class="sep">${subCell}</td>
-              ${isBack ? `<td class="sep">${totCell}</td>` : ''}
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
+  players.forEach((name, p) => {
+    const sc = scores.map(h => h[p]);
+    const enteredHalf = Array.from({length: endH - startH}, (_, i) => startH + i).filter(h => sc[h] !== null);
+    const halfSum  = enteredHalf.reduce((a, h) => a + sc[h], 0);
+    const halfEntP = enteredHalf.reduce((a, h) => a + par[h], 0);
+    const halfDiff = halfSum - halfEntP;
+    const halfCol  = halfDiff < 0 ? 'var(--green)' : halfDiff > 0 ? 'var(--red)' : 'var(--tx2)';
+    const halfDStr = halfDiff === 0 ? 'E' : (halfDiff > 0 ? '+' : '') + halfDiff;
+    const halfDisp = enteredHalf.length
+      ? `${halfSum}<br><span style="font-size:10px;color:${halfCol}">${halfDStr}</span>`
+      : '—';
+
+    let grandCell = '—';
+    if (isBack) {
+      const allEntered = Array.from({length:18}, (_,i)=>i).filter(h => sc[h] !== null);
+      if (allEntered.length) {
+        const grandTot  = allEntered.reduce((a, h) => a + sc[h], 0);
+        const grandEntP = allEntered.reduce((a, h) => a + par[h], 0);
+        const grandDiff = grandTot - grandEntP;
+        const grandCol  = grandDiff < 0 ? 'var(--green)' : grandDiff > 0 ? 'var(--red)' : 'var(--tx2)';
+        const grandDStr = grandDiff === 0 ? 'E' : (grandDiff > 0 ? '+' : '') + grandDiff;
+        grandCell = `${grandTot}<br><span style="font-size:10px;color:${grandCol}">${grandDStr}</span>`;
+      }
+    }
+
+    tbody += `<tr><td class="stk">${name}</td>`;
+    for (let h = startH; h < endH; h++) {
+      if (sc[h] === null) { tbody += `<td style="color:var(--tx3)">—</td>`; continue; }
+      tbody += `<td>${fmtCell(sc[h], par[h])}</td>`;
+    }
+    tbody += `<td class="sep" style="font-weight:700">${halfDisp}</td>`;
+    if (isBack) tbody += `<td class="sep" style="font-weight:700">${grandCell}</td>`;
+    tbody += `</tr>`;
+  });
+  tbody += '</tbody>';
+
+  return `<div class="totals-sc-half">
+    <div class="sc-half-label">${halfLabel}</div>
+    <div class="sc-wrap" style="margin:0 16px"><table class="sct">${thead}${tbody}</table></div>
   </div>`;
 }
 
@@ -469,10 +464,10 @@ function renderMiniScorecard() {
 
   const offset = scorecardPage === 0 ? '0%' : '-50%';
   el.innerHTML = `
-    <div class="mini-sc-viewport">
+    <div class="totals-sc-viewport">
       <div class="mini-sc-track" id="mini-sc-track" style="transform:translateX(${offset})">
-        ${buildMiniHalf(0, 'Out')}
-        ${buildMiniHalf(9, 'In')}
+        ${buildScorecardHalf(0, 9, 'Front Nine', 'Out')}
+        ${buildScorecardHalf(9, 18, 'Back Nine', 'In')}
       </div>
     </div>
     <div class="mini-sc-dots">
@@ -481,7 +476,7 @@ function renderMiniScorecard() {
     </div>`;
 
   // Swipe gesture
-  const vp = el.querySelector('.mini-sc-viewport');
+  const vp = el.querySelector('.totals-sc-viewport');
   let startX = null;
   vp.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive:true});
   vp.addEventListener('touchend', e => {
@@ -706,63 +701,7 @@ function renderTotals() {
   }).join('');
 
   function buildTotalsHalf(startH, endH, halfLabel, colLabel) {
-    const isBack  = startH === 9;
-    const halfPar = par.slice(startH, endH).reduce((a, b) => a + b, 0);
-    const grandPar = par.reduce((a, b) => a + b, 0);
-
-    let thead2 = `<thead><tr><th class="stk">Player</th>`;
-    for (let h = startH; h < endH; h++) thead2 += `<th>${h+1}</th>`;
-    thead2 += `<th class="sep">${colLabel}</th>`;
-    if (isBack) thead2 += `<th class="sep">Tot</th>`;
-    thead2 += `</tr></thead>`;
-
-    let tbody2 = '<tbody>';
-    tbody2 += `<tr class="par-row"><td class="stk">Par</td>`;
-    par.slice(startH, endH).forEach(p => tbody2 += `<td>${p}</td>`);
-    tbody2 += `<td class="sep">${halfPar}</td>`;
-    if (isBack) tbody2 += `<td class="sep">${grandPar}</td>`;
-    tbody2 += `</tr>`;
-
-    players.forEach((name, p) => {
-      const sc = scores.map(h => h[p]);
-      const enteredHalf = Array.from({length: endH - startH}, (_, i) => startH + i).filter(h => sc[h] !== null);
-      const halfSum  = enteredHalf.reduce((a, h) => a + sc[h], 0);
-      const halfEntP = enteredHalf.reduce((a, h) => a + par[h], 0);
-      const halfDiff = halfSum - halfEntP;
-      const halfCol  = halfDiff < 0 ? 'var(--green)' : halfDiff > 0 ? 'var(--red)' : 'var(--tx2)';
-      const halfDStr = halfDiff === 0 ? 'E' : (halfDiff > 0 ? '+' : '') + halfDiff;
-      const halfDisp = enteredHalf.length
-        ? `${halfSum}<br><span style="font-size:10px;color:${halfCol}">${halfDStr}</span>`
-        : '—';
-
-      let grandCell = '—';
-      if (isBack) {
-        const allEntered = Array.from({length:18}, (_,i)=>i).filter(h => sc[h] !== null);
-        if (allEntered.length) {
-          const grandTot  = allEntered.reduce((a, h) => a + sc[h], 0);
-          const grandEntP = allEntered.reduce((a, h) => a + par[h], 0);
-          const grandDiff = grandTot - grandEntP;
-          const grandCol  = grandDiff < 0 ? 'var(--green)' : grandDiff > 0 ? 'var(--red)' : 'var(--tx2)';
-          const grandDStr = grandDiff === 0 ? 'E' : (grandDiff > 0 ? '+' : '') + grandDiff;
-          grandCell = `${grandTot}<br><span style="font-size:10px;color:${grandCol}">${grandDStr}</span>`;
-        }
-      }
-
-      tbody2 += `<tr><td class="stk">${name}</td>`;
-      for (let h = startH; h < endH; h++) {
-        if (sc[h] === null) { tbody2 += `<td style="color:var(--tx3)">—</td>`; continue; }
-        tbody2 += `<td>${fmtCell(sc[h], par[h])}</td>`;
-      }
-      tbody2 += `<td class="sep" style="font-weight:700">${halfDisp}</td>`;
-      if (isBack) tbody2 += `<td class="sep" style="font-weight:700">${grandCell}</td>`;
-      tbody2 += `</tr>`;
-    });
-    tbody2 += '</tbody>';
-
-    return `<div class="totals-sc-half">
-      <div class="sc-half-label">${halfLabel}</div>
-      <div class="sc-wrap" style="margin:0 16px"><table class="sct">${thead2}${tbody2}</table></div>
-    </div>`;
+    return buildScorecardHalf(startH, endH, halfLabel, colLabel);
   }
 
   const scPage = scorecardPage;

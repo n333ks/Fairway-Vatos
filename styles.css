@@ -142,6 +142,7 @@ body {
   opacity: 0.38;
 }
 .tee-option span { font-size:11px; font-weight:400; opacity:.75 }
+.tee-rating { font-size:10px !important; opacity:.65 !important; letter-spacing:0.2px }
 .tee-option.sel {
   opacity: 1;
   border-color: rgba(255,255,255,0.85);
@@ -538,6 +539,28 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .home-recent-course { font-size: 17px; font-weight: 600; margin-bottom: 2px }
 .home-recent-meta   { font-size: 13px; color: var(--tx2); margin-bottom: 12px }
 .home-recent-pills  { display: flex; flex-wrap: wrap; gap: 6px }
+
+/* ── handicap screen ── */
+.hdcp-card {
+  background: var(--bg2); border-radius: var(--r);
+  padding: 16px; margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.hdcp-card-hdr {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px;
+}
+.hdcp-name   { font-size: 17px; font-weight: 700 }
+.hdcp-index  { font-size: 28px; font-weight: 800; color: var(--blue); letter-spacing: -1px }
+.hdcp-pending { font-size: 13px; color: var(--tx2); font-weight: 500 }
+.hdcp-rounds-label { font-size: 12px; color: var(--tx2); margin-bottom: 10px }
+.hdcp-table  { width: 100%; border-collapse: collapse; font-size: 13px }
+.hdcp-table th { text-align: left; font-size: 11px; font-weight: 600;
+  color: var(--tx2); text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 0 6px 6px; border-bottom: 0.5px solid var(--sep2) }
+.hdcp-table td { padding: 7px 6px; border-bottom: 0.5px solid var(--sep2); color: var(--tx) }
+.hdcp-table tr:last-child td { border-bottom: none }
+.hdcp-table tr.hdcp-used td { color: var(--blue); font-weight: 600 }
 
 /* ── totals section titles ── */
 .totals-section-title {

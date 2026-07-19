@@ -40,10 +40,9 @@
         <div class="home-sec-icon">📋</div>
         <div class="home-sec-label">History</div>
       </button>
-      <button class="home-sec-btn" style="opacity:.4;pointer-events:none">
-        <div class="home-sec-icon">👥</div>
-        <div class="home-sec-label">Friends</div>
-        <div class="home-sec-soon">Soon</div>
+      <button class="home-sec-btn" onclick="showHandicap()">
+        <div class="home-sec-icon">🏌️</div>
+        <div class="home-sec-label">Handicaps</div>
       </button>
     </div>
 
@@ -182,6 +181,22 @@
     </div>
   </div>
   <div class="content" id="history-detail-body" style="padding-bottom:32px"></div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 7 — HANDICAP
+════════════════════════════════ -->
+<div class="screen" id="sc-handicap">
+  <div class="nav-bar">
+    <div class="nav-row">
+      <button class="nav-btn" onclick="show('sc-home')">← Home</button>
+      <div class="nav-center">
+        <div class="nav-title">Handicap Index</div>
+      </div>
+      <div style="width:60px"></div>
+    </div>
+  </div>
+  <div class="content" id="handicap-body" style="padding-bottom:32px"></div>
 </div>
 
 <script src="app.js"></script>

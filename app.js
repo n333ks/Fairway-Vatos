@@ -5,17 +5,17 @@ const COURSES = [{
   name: "Desert Springs Golf Club",
   sub:  "Valley Course",
   tees: [
-    { n:"Black", bg:"#111111", fg:"#ffffff", tot:6622,
+    { n:"Black", bg:"#111111", fg:"#ffffff", tot:6622, rating:71.9, slope:130,
       yds:[388,355,508,417,390,222,320,185,543,512,401,169,368,415,221,311,494,403] },
-    { n:"Bk/Bl", bg:"#1e2b5e", fg:"#ffffff", tot:6440,
+    { n:"Bk/Bl", bg:"#1e2b5e", fg:"#ffffff", tot:6440, rating:70.3, slope:126,
       yds:[388,341,492,393,390,203,320,185,521,512,380,169,354,390,194,311,494,403] },
-    { n:"Blue",  bg:"#1d4ed8", fg:"#ffffff", tot:6318,
+    { n:"Blue",  bg:"#1d4ed8", fg:"#ffffff", tot:6318, rating:69.1, slope:123,
       yds:[377,341,492,393,380,203,300,170,521,499,380,154,354,390,194,296,485,389] },
-    { n:"B/W",   bg:"#4a6fa5", fg:"#ffffff", tot:6146,
+    { n:"B/W",   bg:"#4a6fa5", fg:"#ffffff", tot:6146, rating:67.0, slope:117,
       yds:[365,331,492,371,366,203,300,170,501,481,361,154,340,365,194,296,485,371] },
-    { n:"White", bg:"#e5e5e5", fg:"#111111", tot:6018,
+    { n:"White", bg:"#e5e5e5", fg:"#111111", tot:6018, rating:65.7, slope:114,
       yds:[365,331,473,371,366,183,286,154,501,481,361,138,340,365,174,283,475,371] },
-    { n:"Red",   bg:"#b91c1c", fg:"#ffffff", tot:5262,
+    { n:"Red",   bg:"#b91c1c", fg:"#ffffff", tot:5262, rating:null, slope:null,
       yds:[307,291,418,335,330,156,236,130,443,434,320,120,297,319,142,232,437,315] },
   ],
   par: [4,4,5,4,4,3,4,3,5, 5,4,3,4,4,3,4,5,4],
@@ -207,6 +207,7 @@ function renderTeeScroll() {
   document.getElementById('tee-scroll').innerHTML = c.tees.map((t, i) =>
     `<button class="tee-option${i === tIdx ? ' sel' : ''}" style="background:${t.bg};color:${t.fg}" onclick="selTee(${i})">
       ${t.n}<span>${t.tot.toLocaleString()} yds</span>
+      ${t.rating != null ? `<span class="tee-rating">${t.rating} / ${t.slope}</span>` : ''}
     </button>`).join('');
 }
 
@@ -684,17 +685,27 @@ function saveRound() {
   const money = calcMoney();
   const id    = currentRoundId || Date.now();
   currentRoundId = id;
+  const t = COURSES[cIdx].tees[tIdx];
+  const scoreDiffs = (t.rating != null)
+    ? players.map((_, p) => {
+        const gross = scores.reduce((sum, h) => sum + (h[p] || 0), 0);
+        return parseFloat(((113 / t.slope) * (gross - t.rating)).toFixed(1));
+      })
+    : null;
   const round = {
     id,
     date:       new Date().toISOString(),
     courseName: COURSES[cIdx].name,
     courseSub:  COURSES[cIdx].sub,
     tee:        COURSES[cIdx].tees[tIdx].n,
+    rating:     t.rating,
+    slope:      t.slope,
     players:    [...players],
     stake,
     scores:     scores.map(h => [...h]),
     holes:      holes.map(h => ({...h})),
-    money:      [...money]
+    money:      [...money],
+    scoreDiffs
   };
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
   const idx  = hist.findIndex(r => r.id === id);
@@ -864,6 +875,87 @@ function viewRound(id) {
 
   document.getElementById('history-detail-body').innerHTML = html;
   show('sc-history-detail');
+}
+
+/* ════════════════════════════════
+   HANDICAP
+════════════════════════════════ */
+function calcHandicapIndex(diffs) {
+  // WHS: number of best diffs to use based on count
+  const n = diffs.length;
+  if (n < 3) return null;
+  const bestCount = n >= 20 ? 8 : n >= 19 ? 8 : n >= 18 ? 8 : n >= 17 ? 7 : n >= 16 ? 6
+    : n >= 15 ? 6 : n >= 14 ? 5 : n >= 13 ? 5 : n >= 12 ? 4 : n >= 11 ? 4
+    : n >= 10 ? 3 : n >= 9 ? 3 : n >= 8 ? 2 : n >= 7 ? 2 : n >= 6 ? 2
+    : n >= 5 ? 1 : n >= 4 ? 1 : 1;
+  const sorted = [...diffs].sort((a, b) => a - b).slice(0, bestCount);
+  const avg = sorted.reduce((s, v) => s + v, 0) / bestCount;
+  return Math.floor(avg * 0.96 * 10) / 10;
+}
+
+function showHandicap() {
+  const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
+
+  // Gather all rounds with score diffs, keyed by player name
+  const playerData = {};
+  hist.forEach(r => {
+    if (!r.scoreDiffs) return;
+    r.players.forEach((name, i) => {
+      if (r.scoreDiffs[i] == null) return;
+      if (!playerData[name]) playerData[name] = [];
+      playerData[name].push({ diff: r.scoreDiffs[i], date: r.date, course: r.courseSub, tee: r.tee });
+    });
+  });
+
+  const el = document.getElementById('handicap-body');
+  const names = Object.keys(playerData);
+
+  if (!names.length) {
+    el.innerHTML = `<div class="history-empty">No rounds with handicap data yet.<br>Finish a round to start building your index.</div>`;
+    show('sc-handicap');
+    return;
+  }
+
+  el.innerHTML = names.map(name => {
+    const rounds = playerData[name]; // newest first from hist order
+    const diffs  = rounds.slice(0, 20).map(r => r.diff);
+    const idx    = calcHandicapIndex(diffs);
+    const needed = Math.max(0, 3 - diffs.length);
+    const idxStr = idx === null
+      ? `<span class="hdcp-pending">Need ${needed} more round${needed > 1 ? 's' : ''}</span>`
+      : `<span class="hdcp-index">${idx >= 0 ? '+' : ''}${idx.toFixed(1)}</span>`;
+
+    const rows = rounds.slice(0, 20).map((r, i) => {
+      const d   = new Date(r.date).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+      const best = diffs.slice(0, 20).sort((a,b)=>a-b).slice(0, calcBestCount(Math.min(diffs.length,20)));
+      const used = best.includes(r.diff) && (() => { const idx2 = best.indexOf(r.diff); best.splice(idx2,1); return true; })();
+      return `<tr class="${used ? 'hdcp-used' : ''}">
+        <td>${d}</td><td>${r.tee}</td>
+        <td>${r.diff >= 0 ? '+' : ''}${r.diff.toFixed(1)}${used ? ' ✓' : ''}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="hdcp-card">
+      <div class="hdcp-card-hdr">
+        <div class="hdcp-name">${name}</div>
+        <div>${idxStr}</div>
+      </div>
+      <div class="hdcp-rounds-label">${diffs.length} round${diffs.length!==1?'s':''} · best ${calcBestCount(Math.min(diffs.length,20))} used</div>
+      <div class="sc-wrap"><table class="hdcp-table">
+        <thead><tr><th>Date</th><th>Tee</th><th>Diff</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  }).join('');
+
+  show('sc-handicap');
+}
+
+function calcBestCount(n) {
+  return n >= 20 ? 8 : n >= 19 ? 8 : n >= 18 ? 8 : n >= 17 ? 7 : n >= 16 ? 6
+    : n >= 15 ? 6 : n >= 14 ? 5 : n >= 13 ? 5 : n >= 12 ? 4 : n >= 11 ? 4
+    : n >= 10 ? 3 : n >= 9 ? 3 : n >= 8 ? 2 : n >= 7 ? 2 : n >= 6 ? 2
+    : n >= 5 ? 1 : n >= 4 ? 1 : n >= 3 ? 1 : 0;
 }
 
 /* ════════════════════════════════

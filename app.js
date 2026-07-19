@@ -1095,6 +1095,11 @@ function renderTotals() {
     }, {passive:true});
   }
 
+  // Find logged-in user's player slot for perspective-based display
+  const myIdx = currentUser
+    ? players.findIndex(p => p && p.uid === currentUser.uid)
+    : -1;
+
   let hr = '';
   for (let h = lastHole(); h >= firstHole(); h--) {
     const hole = holes[h], ch = cs[h];
@@ -1106,6 +1111,20 @@ function renderTotals() {
     const s  = (stake * ch.n).toFixed(2);
     const r  = hole.result;
 
+    // Derive result from my perspective
+    let myResult = r;
+    if (r && myIdx >= 0) {
+      if (tp === 'hog') {
+        // hogger wins → non-hoggers lose, and vice versa
+        if (myIdx !== fi) myResult = r === 'win' ? 'lose' : r === 'lose' ? 'win' : r;
+      } else {
+        // 2v2: if I'm on team B, flip result
+        const onTeamB = myIdx !== fi && myIdx !== pi;
+        if (onTeamB) myResult = r === 'win' ? 'lose' : r === 'lose' ? 'win' : r;
+      }
+    }
+
+    // Teams display — show winner with trophy
     const t1Names = `${shortName(players[fi])} + ${shortName(players[pi])}`;
     const t2Names = o.filter(i => i !== fi && i !== pi).map(i => shortName(players[i])).join(' + ');
     let teams;
@@ -1121,13 +1140,14 @@ function renderTotals() {
       teams = `${t1Names} vs ${t2Names}`;
     }
 
-    const badge = r === 'win' ? 'win' : r === 'lose' ? 'lose' : r === 'tie' ? 'tie' : 'pend';
-    const label = r === 'win' ? 'Win' : r === 'lose' ? 'Lose' : r === 'tie' ? 'Tie' : '—';
+    const badge = myResult === 'win' ? 'win' : myResult === 'lose' ? 'lose' : myResult === 'tie' ? 'tie' : 'pend';
+    const label = myResult === 'win' ? 'Win' : myResult === 'lose' ? 'Lose' : myResult === 'tie' ? 'Tie' : '—';
 
+    // Money from my perspective
     let moneyStr = '—';
-    if (r === 'win')  moneyStr = tp === 'hog' ? `+$${(stake*ch.n*3).toFixed(2)}` : `+$${s}`;
-    if (r === 'lose') moneyStr = tp === 'hog' ? `−$${(stake*ch.n*3).toFixed(2)}` : `−$${s}`;
-    if (r === 'tie')  moneyStr = '→ next';
+    if (myResult === 'win')  moneyStr = tp === 'hog' ? (myIdx === fi ? `+$${(stake*ch.n*3).toFixed(2)}` : `+$${s}`) : `+$${s}`;
+    if (myResult === 'lose') moneyStr = tp === 'hog' ? (myIdx === fi ? `−$${(stake*ch.n*3).toFixed(2)}` : `−$${s}`) : `−$${s}`;
+    if (myResult === 'tie')  moneyStr = '→ next';
 
     if (!r) {
       hr += `<div class="hr-row hr-row--inprogress">
@@ -1141,7 +1161,7 @@ function renderTotals() {
       <span class="hr-num">H${h+1}${ch.n > 1 ? ' ×'+ch.n : ''}</span>
       <span class="hr-teams">${teams}</span>
       <span class="hr-badge ${badge}">${label}</span>
-      <span class="hr-money ${r==='win'?'pos':r==='lose'?'neg':''}">${moneyStr}</span>
+      <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
     </div>`;
   }
 

@@ -111,6 +111,14 @@
       <div class="tee-scroll" id="tee-scroll"></div>
     </div>
     <div class="section">
+      <div class="section-header">Game</div>
+      <div class="game-type-row">
+        <button class="game-type-btn sel" onclick="selGameType('hog')">🐷 Hog</button>
+        <button class="game-type-btn" onclick="selGameType('scramble')">⛳ Scramble</button>
+        <button class="game-type-btn" onclick="selGameType('stroke')">🏌️ Skins</button>
+      </div>
+    </div>
+    <div class="section">
       <div class="section-header">Holes</div>
       <div class="hole-count-row">
         <button class="hole-count-btn" onclick="selHoleCount(18)">18 Holes</button>
@@ -122,8 +130,9 @@
       </div>
     </div>
     <div class="section">
-      <div class="section-header">Players — tap in tee order for hole 1</div>
+      <div class="section-header" id="players-section-hdr">Players — tap in tee order for hole 1</div>
       <div id="player-inputs"></div>
+      <div id="team-assignment" style="display:none"></div>
     </div>
     <div class="section">
       <div class="section-header">Stake</div>

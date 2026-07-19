@@ -97,7 +97,8 @@ function syncToFirestore() {
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(() => {
     db.collection('activeRounds').doc(codeKey(joinCode)).update({
-      scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole, seq
+      scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole, seq,
+      gameType, scrambleTeams
     }).catch(e => console.error('sync error', e));
   }, 300);
 }
@@ -128,6 +129,7 @@ function listenToRound(key) {
       cIdx = d.courseIdx; tIdx = d.teeIdx;
       players = d.players; stake = d.stake;
       holeCount = d.holeCount; nineChoice = d.nineChoice;
+      gameType = d.gameType || 'hog'; scrambleTeams = d.scrambleTeams || [[], []];
       scores = fsToScores(d.scores); holes = d.holes; touched = fsToTouched(d.touched);
       currentHole = d.currentHole;
       recomputeAll();
@@ -275,6 +277,9 @@ let scorecardPage = 0; // 0=front, 1=back
 let currentRoundId = null;
 let holeCount  = 18;      // 18 or 9
 let nineChoice = 'front'; // 'front' or 'back'
+let gameType   = 'hog';   // 'hog' | 'scramble' | 'stroke'
+let scrambleTeams     = [[], []]; // [[playerIdx,playerIdx],[playerIdx,playerIdx]] during round
+let scrambleTeamAssign = [0, 0, 1, 1]; // team (0/1) for each position in selectedPlayers
 
 // Compat helper: players can be {name,uid} objects (new) or strings (old history)
 function pname(p) { return typeof p === 'string' ? p : (p && p.name) || 'Player'; }
@@ -313,6 +318,13 @@ function activeHoles() {
 function firstHole() { return activeHoles()[0]; }
 function lastHole()  { return activeHoles()[activeHoles().length - 1]; }
 
+function holeAllTouched(h) {
+  if (gameType === 'scramble' && scrambleTeams[0].length && scrambleTeams[1].length) {
+    return touched[h][scrambleTeams[0][0]] && touched[h][scrambleTeams[1][0]];
+  }
+  return touched[h].every(t => t);
+}
+
 function ord(h) {
   return players.map((_, i) => (i + h) % players.length);
 }
@@ -343,7 +355,47 @@ function buildChains() {
   return c;
 }
 
+function buildScrambleChains() {
+  const chains = Array.from({length:18}, () => ({n:1, carry:false}));
+  let mult = 1;
+  for (const h of activeHoles()) {
+    chains[h].n = mult; chains[h].carry = mult > 1;
+    if (holes[h].result === 'tie') mult++; else mult = 1;
+  }
+  return chains;
+}
+
+function recomputeScramble() {
+  const a0 = scrambleTeams[0][0], b0 = scrambleTeams[1][0];
+  for (const h of activeHoles()) {
+    if (!touched[h][a0] || !touched[h][b0]) { holes[h].result = null; continue; }
+    const aS = scores[h][a0], bS = scores[h][b0];
+    holes[h].result = aS < bS ? 'win' : bS < aS ? 'lose' : 'tie';
+  }
+}
+
+function buildSkinsResults() {
+  const results = [];
+  let pot = 1;
+  for (const h of activeHoles()) {
+    if (!holeAllTouched(h)) { results.push({h, pending:true, tied:false, winner:null, n:pot}); continue; }
+    const sc = players.map((_, p) => scores[h][p]);
+    const min = Math.min(...sc);
+    const wIdxs = players.map((_, p) => p).filter(p => sc[p] === min);
+    if (wIdxs.length === 1) {
+      results.push({h, pending:false, tied:false, winner:wIdxs[0], n:pot});
+      pot = 1;
+    } else {
+      results.push({h, pending:false, tied:true, winner:null, n:pot});
+      pot++;
+    }
+  }
+  return results;
+}
+
 function recomputeAll() {
+  if (gameType === 'scramble') return recomputeScramble();
+  if (gameType === 'stroke')   return; // skins computed on-the-fly from scores
   let cv      = null;
   let betHole = 0;
   for (let h = 0; h < 18; h++) {
@@ -386,7 +438,44 @@ function recomputeAll() {
   }
 }
 
+function calcScrambleMoney() {
+  const chains = buildScrambleChains();
+  const money  = players.map(() => 0);
+  for (const h of activeHoles()) {
+    const r = holes[h].result;
+    if (!r || r === 'tie') continue;
+    const n = chains[h].n;
+    const winTeam  = r === 'win' ? scrambleTeams[0] : scrambleTeams[1];
+    const loseTeam = r === 'win' ? scrambleTeams[1] : scrambleTeams[0];
+    loseTeam.forEach(i => money[i] -= stake * n);
+    winTeam.forEach(i  => money[i] += stake * n); // 2v2 symmetric
+  }
+  return money;
+}
+
+function calcStrokeMoney() {
+  const money = players.map(() => 0);
+  let pot = 1;
+  for (const h of activeHoles()) {
+    if (!holeAllTouched(h)) continue;
+    const sc = players.map((_, p) => scores[h][p]);
+    const min = Math.min(...sc);
+    const wIdxs = players.map((_, p) => p).filter(p => sc[p] === min);
+    if (wIdxs.length === 1) {
+      const w = wIdxs[0];
+      players.forEach((_, p) => {
+        if (p === w) money[p] += stake * pot * (players.length - 1);
+        else         money[p] -= stake * pot;
+      });
+      pot = 1;
+    } else { pot++; }
+  }
+  return money;
+}
+
 function calcMoney() {
+  if (gameType === 'scramble') return calcScrambleMoney();
+  if (gameType === 'stroke')   return calcStrokeMoney();
   const cs  = buildChains();
   const tot = new Array(players.length).fill(0);
   for (let h = 0; h < 18; h++) {
@@ -426,7 +515,7 @@ function goHome() {
 }
 
 function completedHoleCount() {
-  return activeHoles().filter(h => touched[h].every(t => t)).length;
+  return activeHoles().filter(h => holeAllTouched(h)).length;
 }
 
 function updateSubmitBtn() {
@@ -493,7 +582,7 @@ function prevHole() {
   if (currentHole > firstHole()) goToHole(currentHole - 1);
 }
 function nextHole() {
-  if (currentHole < lastHole() && touched[currentHole].every(t => t)) goToHole(currentHole + 1);
+  if (currentHole < lastHole() && holeAllTouched(currentHole)) goToHole(currentHole + 1);
 }
 
 /* ════════════════════════════════
@@ -527,6 +616,8 @@ function selectCourse(i) {
   document.querySelectorAll('.hole-count-btn').forEach((b, idx) => b.classList.toggle('sel', idx === 0));
   document.querySelectorAll('.nine-choice-btn').forEach(b => b.classList.toggle('sel', b.dataset.val === 'front'));
   document.getElementById('nine-choice').style.display = 'none';
+  document.querySelectorAll('.game-type-btn').forEach((b, i) => b.classList.toggle('sel', ['hog','scramble','stroke'][i] === gameType));
+  scrambleTeamAssign = [0, 0, 1, 1];
   show('sc-setup');
 }
 
@@ -555,6 +646,47 @@ function adjStake(dir) {
     el.textContent = '$' + stake.toFixed(2);
     el.classList.add('set');
   }
+}
+
+function selGameType(type) {
+  gameType = type;
+  document.querySelectorAll('.game-type-btn').forEach((b, i) => {
+    b.classList.toggle('sel', ['hog','scramble','stroke'][i] === type);
+  });
+  const hdr = document.getElementById('players-section-hdr');
+  if (hdr) hdr.textContent = type === 'scramble'
+    ? 'Players — tap in tee order (need exactly 4)'
+    : 'Players — tap in tee order for hole 1';
+  renderTeamAssignment();
+}
+
+function renderTeamAssignment() {
+  const el = document.getElementById('team-assignment');
+  if (!el) return;
+  if (gameType !== 'scramble' || selectedPlayers.length !== 4) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const cols = [0, 1].map(t => {
+    const label = t === 0 ? 'Team A' : 'Team B';
+    const cls   = t === 0 ? 'a' : 'b';
+    const btnCls = t === 0 ? 'team-a' : 'team-b';
+    const btns = selectedPlayers.map((p, i) => scrambleTeamAssign[i] === t
+      ? `<button class="team-player-btn ${btnCls}" onclick="switchTeam(${i})">${shortName(p)}</button>`
+      : '').join('');
+    return `<div class="team-assign-col">
+      <div class="team-assign-label ${cls}">${label}</div>
+      ${btns}
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div class="team-assign-wrap">
+    <div class="team-assign-hdr">Assign teams — tap a player to switch sides</div>
+    <div class="team-assign-cols">${cols}</div>
+    <div class="team-assign-hint">Each team needs exactly 2 players</div>
+  </div>`;
+}
+
+function switchTeam(i) {
+  scrambleTeamAssign[i] = 1 - scrambleTeamAssign[i];
+  renderTeamAssignment();
 }
 
 async function renderPlayerInputs() {
@@ -592,18 +724,22 @@ function togglePlayer(uid) {
   const idx = selectedPlayers.findIndex(p => p.uid === uid);
   if (idx >= 0) {
     selectedPlayers.splice(idx, 1);
+    scrambleTeamAssign.splice(idx, 1);
   } else {
     if (selectedPlayers.length >= 4) return;
+    // auto-assign: positions 0,1 → team A; 2,3 → team B
+    scrambleTeamAssign.push(selectedPlayers.length >= 2 ? 1 : 0);
     selectedPlayers.push({ name: user.name, uid: user.uid });
   }
   renderPickerUI();
+  renderTeamAssignment();
 }
 
 function saveSession() {
   if (!players.length) return;
   localStorage.setItem('hog_session', JSON.stringify({
     cIdx, tIdx, players, stake, scores, holes, touched, currentHole, currentRoundId,
-    holeCount, nineChoice
+    holeCount, nineChoice, gameType, scrambleTeams
   }));
 }
 
@@ -622,6 +758,7 @@ function continueRound() {
   scores = s.scores; holes = s.holes; touched = s.touched;
   currentHole = s.currentHole; currentRoundId = s.currentRoundId;
   holeCount = s.holeCount || 18; nineChoice = s.nineChoice || 'front';
+  gameType = s.gameType || 'hog'; scrambleTeams = s.scrambleTeams || [[], []];
   isScorekeeper = true; // local session = always scorekeeper
   showTab('holes');
   renderHoles();
@@ -644,9 +781,15 @@ function selNineChoice(c) {
 }
 
 async function startRound() {
-  if (selectedPlayers.length < 2) {
-    alert('Select at least 2 players.');
-    return;
+  if (gameType === 'scramble') {
+    if (selectedPlayers.length !== 4) { alert('Scramble requires exactly 4 players.'); return; }
+    const tA = selectedPlayers.map((_, i) => i).filter(i => scrambleTeamAssign[i] === 0);
+    const tB = selectedPlayers.map((_, i) => i).filter(i => scrambleTeamAssign[i] === 1);
+    if (tA.length !== 2 || tB.length !== 2) { alert('Each team needs exactly 2 players.'); return; }
+    scrambleTeams = [tA, tB];
+  } else {
+    if (selectedPlayers.length < 2) { alert('Select at least 2 players.'); return; }
+    scrambleTeams = [[], []];
   }
   players = [...selectedPlayers];
   scores  = Array.from({length:18}, () => players.map(() => null));
@@ -669,6 +812,7 @@ async function startRound() {
       joinCode,
       courseIdx: cIdx, teeIdx: tIdx,
       players, stake, holeCount, nineChoice,
+      gameType, scrambleTeams,
       scores: scoresToFS(scores), holes, touched: touchedToFS(touched), currentHole,
       scorekeeperUid: currentUser.uid,
       participants,
@@ -694,17 +838,9 @@ async function startRound() {
 ════════════════════════════════ */
 function renderHoles() {
   updateSubmitBtn();
-  const cs  = buildChains();
-  const c   = COURSES[cIdx], t = c.tees[tIdx];
-  const h   = currentHole;
-  const ch  = cs[h];
+  const c = COURSES[cIdx], t = c.tees[tIdx];
+  const h = currentHole;
   const par = c.par[h], hcp = c.hcp[h], yds = t.yds[h];
-  const o   = ord(ch.betHole);
-  const fi  = ch.carry ? ch.f : o[0];
-  const priorDone   = h === 0 || holes[h-1].result !== null;
-  const allTouched  = touched[h].every(t => t);
-
-  // Drive nav bar
   const titleEl = document.getElementById('round-title');
   const subEl   = document.getElementById('round-sub');
   if (titleEl) titleEl.textContent = `Hole ${h+1} · Par ${par}`;
@@ -712,27 +848,35 @@ function renderHoles() {
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('btn-next');
   if (btnPrev) btnPrev.disabled = (h === firstHole());
-  if (btnNext) btnNext.disabled = (h === lastHole() || !allTouched);
+  if (btnNext) btnNext.disabled = (h === lastHole() || !holeAllTouched(h));
 
-  const stakeTag = ch.n > 1
-    ? `<span class="carry-tag">$${(stake * ch.n).toFixed(2)}/player</span>` : '';
+  if (gameType === 'scramble') renderHolesBodyScramble(h);
+  else if (gameType === 'stroke') renderHolesBodyStroke(h);
+  else renderHolesBodyHog(h);
 
+  renderMiniScorecard();
+}
+
+function renderHolesBodyHog(h) {
+  const cs = buildChains(), ch = cs[h];
+  const o  = ord(ch.betHole);
+  const fi = ch.carry ? ch.f : o[0];
+  const priorDone  = h === 0 || holes[h-1].result !== null;
+  const allTouched = touched[h].every(t => t);
+  const stakeTag   = ch.n > 1 ? `<span class="carry-tag">$${(stake*ch.n).toFixed(2)}/player</span>` : '';
   const isLastHole    = h === lastHole();
   const effectiveType = ch.carry ? ch.t : holes[h].type;
   const needsPartner  = !ch.carry && effectiveType === '2v2' && holes[h].partner === null;
-
   const blocked = !allTouched
     ? `<div class="next-hole-blocked">Enter all scores to continue</div>`
     : !effectiveType
       ? `<div class="next-hole-blocked">Choose a game type above</div>`
       : needsPartner
         ? `<div class="next-hole-blocked">Choose teams above</div>`
-        : isLastHole
-          ? ''
-          : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
-  const body = document.getElementById('holes-body');
-  body.innerHTML = `
-    <div class="hole-card${ch.carry ? ' carry' : ''}" id="hole-${h}">
+        : isLastHole ? ''
+        : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
+  document.getElementById('holes-body').innerHTML = `
+    <div class="hole-card${ch.carry?' carry':''}" id="hole-${h}">
       <div class="hole-card-hdr">
         <div>
           <div class="first-tee-lbl" id="hfl-${h}">${ch.carry ? 'Carryover' : 'First Tee'}</div>
@@ -746,7 +890,66 @@ function renderHoles() {
     <div class="totals-section-title">Scorecard</div>
     <div id="mini-sc"></div>`;
   renderHoleBody(h, ch);
-  renderMiniScorecard();
+}
+
+function renderHolesBodyScramble(h) {
+  const chains = buildScrambleChains(), ch = chains[h];
+  const a0 = scrambleTeams[0][0], b0 = scrambleTeams[1][0];
+  const aName = scrambleTeams[0].map(i => shortName(players[i])).join(' + ');
+  const bName = scrambleTeams[1].map(i => shortName(players[i])).join(' + ');
+  const ready = touched[h][a0] && touched[h][b0];
+  const stakeTag = ch.n > 1 ? `<span class="carry-tag">$${(stake*ch.n).toFixed(2)}/team</span>` : '';
+  const blocked = !ready
+    ? `<div class="next-hole-blocked">Enter both team scores to continue</div>`
+    : h === lastHole() ? ''
+    : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
+  document.getElementById('holes-body').innerHTML = `
+    <div class="hole-card${ch.carry?' carry':''}" id="hole-${h}">
+      <div class="hole-card-hdr">
+        <div>
+          <div class="first-tee-lbl">2-Man Scramble</div>
+          <div class="first-tee-name">${aName} <span style="color:var(--tx3);font-size:12px">vs</span> ${bName}</div>
+        </div>
+        ${stakeTag}
+      </div>
+      <div id="hb-${h}"></div>
+    </div>
+    ${blocked}
+    <div class="totals-section-title">Scorecard</div>
+    <div id="mini-sc"></div>`;
+  renderHoleBodyScramble(h, ch);
+}
+
+function renderHolesBodyStroke(h) {
+  let pot = 1;
+  for (const ph of activeHoles()) {
+    if (ph >= h) break;
+    if (!touched[ph].every(t => t)) continue;
+    const sc = players.map((_, p) => scores[ph][p]);
+    const min = Math.min(...sc);
+    if (players.filter((_, p) => sc[p] === min).length === 1) pot = 1; else pot++;
+  }
+  const ready = touched[h].every(t => t);
+  const stakeTag = pot > 1 ? `<span class="carry-tag">$${(stake*pot).toFixed(2)}/skin</span>` : '';
+  const blocked = !ready
+    ? `<div class="next-hole-blocked">Enter all scores to continue</div>`
+    : h === lastHole() ? ''
+    : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
+  document.getElementById('holes-body').innerHTML = `
+    <div class="hole-card${pot>1?' carry':''}" id="hole-${h}">
+      <div class="hole-card-hdr">
+        <div>
+          <div class="first-tee-lbl">Skins</div>
+          <div class="first-tee-name">${pot>1?'×'+pot+' Carryover':players.map(p=>shortName(p)).join(' · ')}</div>
+        </div>
+        ${stakeTag}
+      </div>
+      <div id="hb-${h}"></div>
+    </div>
+    ${blocked}
+    <div class="totals-section-title">Scorecard</div>
+    <div id="mini-sc"></div>`;
+  renderHoleBodyStroke(h, pot);
 }
 
 function goToHole(h) {
@@ -766,7 +969,54 @@ function setSCPage(p) {
   document.querySelectorAll('.mini-sc-dot').forEach((d, i) => d.classList.toggle('on', i === p));
 }
 
+function buildScorecardHalfScramble(startH, endH, halfLabel, colLabel) {
+  const c = COURSES[cIdx], par = c.par;
+  const isBack = startH === 9;
+  const halfPar  = par.slice(startH, endH).reduce((a,b) => a+b, 0);
+  const grandPar = par.reduce((a,b) => a+b, 0);
+  let thead = `<thead><tr><th class="stk">Hole</th>`;
+  for (let h = startH; h < endH; h++) thead += `<th${h===currentHole?' class="mini-cur"':''}>${h+1}</th>`;
+  thead += `<th class="sep">${colLabel}</th>${isBack ? '<th class="sep">Tot</th>' : ''}</tr></thead>`;
+  let tbody = `<tbody><tr class="par-row"><td class="stk">Par</td>`;
+  par.slice(startH, endH).forEach(p => tbody += `<td>${p}</td>`);
+  tbody += `<td class="sep">${halfPar}</td>${isBack ? `<td class="sep">${grandPar}</td>` : ''}</tr>`;
+  [0, 1].forEach(t => {
+    const capIdx = scrambleTeams[t][0];
+    const tName  = `Team ${t === 0 ? 'A' : 'B'}`;
+    const sc = scores.map(h => h[capIdx]);
+    const entered = Array.from({length: endH-startH}, (_,i) => startH+i).filter(h => sc[h] !== null);
+    const halfSum  = entered.reduce((a,h) => a + sc[h], 0);
+    const halfEntP = entered.reduce((a,h) => a + par[h], 0);
+    const halfDiff = halfSum - halfEntP;
+    const halfCol  = halfDiff < 0 ? 'var(--green)' : halfDiff > 0 ? 'var(--red)' : 'var(--tx2)';
+    const halfDStr = halfDiff === 0 ? 'E' : (halfDiff > 0 ? '+' : '') + halfDiff;
+    const halfDisp = entered.length ? `${halfSum}<br><span style="font-size:10px;color:${halfCol}">${halfDStr}</span>` : '—';
+    let grandCell = '—';
+    if (isBack) {
+      const allEnt = Array.from({length:18},(_,i)=>i).filter(h => sc[h] !== null);
+      if (allEnt.length) {
+        const gTot = allEnt.reduce((a,h) => a+sc[h], 0), gPar = allEnt.reduce((a,h) => a+par[h], 0);
+        const gD = gTot - gPar, gCol = gD<0?'var(--green)':gD>0?'var(--red)':'var(--tx2)';
+        grandCell = `${gTot}<br><span style="font-size:10px;color:${gCol}">${gD===0?'E':(gD>0?'+':'')+gD}</span>`;
+      }
+    }
+    tbody += `<tr><td class="stk">${tName}</td>`;
+    for (let h = startH; h < endH; h++) {
+      tbody += sc[h] === null ? `<td style="color:var(--tx3)">—</td>` : `<td>${fmtCell(sc[h], par[h])}</td>`;
+    }
+    tbody += `<td class="sep" style="font-weight:700">${halfDisp}</td>${isBack?`<td class="sep" style="font-weight:700">${grandCell}</td>`:''}</tr>`;
+  });
+  tbody += '</tbody>';
+  return `<div class="totals-sc-half">
+    <div class="sc-half-label">${halfLabel}</div>
+    <div class="sc-wrap" style="margin:0 16px"><table class="sct">${thead}${tbody}</table></div>
+  </div>`;
+}
+
 function buildScorecardHalf(startH, endH, halfLabel, colLabel) {
+  if (gameType === 'scramble' && scrambleTeams[0].length && scrambleTeams[1].length) {
+    return buildScorecardHalfScramble(startH, endH, halfLabel, colLabel);
+  }
   const c      = COURSES[cIdx];
   const par    = c.par;
   const isBack = startH === 9;
@@ -888,6 +1138,61 @@ function scoreRowHTML(h, pi, name) {
 
 function teamBNames(o, fi, pi) {
   return o.filter(i => i !== fi && i !== pi).map(i => shortName(players[i])).join(' + ');
+}
+
+function renderHoleBodyScramble(h, ch) {
+  const el = document.getElementById('hb-' + h);
+  if (!el) return;
+  const a0 = scrambleTeams[0][0], b0 = scrambleTeams[1][0];
+  const aName = scrambleTeams[0].map(i => shortName(players[i])).join(' + ');
+  const bName = scrambleTeams[1].map(i => shortName(players[i])).join(' + ');
+  const s = (stake * ch.n).toFixed(2), ns = (stake * (ch.n + 1)).toFixed(2);
+  const r = holes[h].result;
+  let html = ch.carry ? `<div class="carry-lock"><span class="carry-lock-badge">🔒 Carryover</span></div>` : '';
+  html += `
+    <div class="team-section team-a">
+      <div class="team-label">Team A — ${aName}</div>
+      ${scoreRowHTML(h, a0, 'Team A')}
+    </div>
+    <div class="vs-row"><div class="vs-line"></div><span class="vs-txt">VS</span><div class="vs-line"></div></div>
+    <div class="team-section team-b">
+      <div class="team-label">Team B — ${bName}</div>
+      ${scoreRowHTML(h, b0, 'Team B')}
+    </div>`;
+  if (touched[h][a0] && touched[h][b0]) {
+    let txt = 'Enter scores above', cls = 'rb-pending';
+    const nextH = h + 2;
+    if (r === 'win')  { txt = `Team A wins · +$${s} each`; cls = 'rb-win'; }
+    else if (r === 'lose') { txt = `Team B wins · +$${s} each`; cls = 'rb-win'; }
+    else if (r === 'tie')  { txt = `Tied · $${ns}/player carries to hole ${nextH}`; cls = 'rb-tie'; }
+    html += `<div class="result-banner ${cls}">${txt}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderHoleBodyStroke(h, pot) {
+  const el = document.getElementById('hb-' + h);
+  if (!el) return;
+  const allTouch = touched[h].every(t => t);
+  let html = `<div class="team-section">
+    <div class="team-label">Individual Scores</div>
+    ${players.map((_, p) => scoreRowHTML(h, p, shortName(players[p]))).join('')}
+  </div>`;
+  if (allTouch) {
+    const sc = players.map((_, p) => scores[h][p]);
+    const min = Math.min(...sc);
+    const wIdxs = players.map((_, p) => p).filter(p => sc[p] === min);
+    const s = (stake * pot).toFixed(2), ns = (stake * (pot + 1)).toFixed(2);
+    let txt, cls;
+    if (wIdxs.length === 1) {
+      const winAmt = (stake * pot * (players.length - 1)).toFixed(2);
+      txt = `🏆 ${shortName(players[wIdxs[0]])} wins skin · +$${winAmt}`; cls = 'rb-win';
+    } else {
+      txt = `Tied — $${ns}/skin carries to hole ${h + 2}`; cls = 'rb-tie';
+    }
+    html += `<div class="result-banner ${cls}">${txt}</div>`;
+  }
+  el.innerHTML = html;
 }
 
 function renderHoleBody(h, ch) {
@@ -1024,7 +1329,7 @@ function adjScore(h, p, d) {
   if (sv) sv.textContent = sc;
   if (sb) { sb.textContent = b.txt; sb.className = 'sc-badge ' + b.cls; }
 
-  if (touched[h].every(t => t)) recomputeAll();
+  if (holeAllTouched(h)) recomputeAll();
   saveSession();
   syncToFirestore();
   renderHoles();
@@ -1039,7 +1344,7 @@ function setType(h, type) {
     const cs = buildChains();
     holes[h].partner = ord(cs[h].betHole)[1];
   }
-  if (touched[h].every(t => t)) recomputeAll();
+  if (holeAllTouched(h)) recomputeAll();
   saveSession();
   syncToFirestore();
   renderHoles();
@@ -1048,7 +1353,7 @@ function setType(h, type) {
 function setPartner(h, idx) {
   if (!isScorekeeper) return;
   holes[h].partner = idx;
-  if (touched[h].every(t => t)) recomputeAll();
+  if (holeAllTouched(h)) recomputeAll();
   saveSession();
   syncToFirestore();
   renderHoles();
@@ -1113,74 +1418,98 @@ function renderTotals() {
     }, {passive:true});
   }
 
-  // Find logged-in user's player slot for perspective-based display
-  const myIdx = currentUser
-    ? players.findIndex(p => p && p.uid === currentUser.uid)
-    : -1;
-
+  const myIdx = currentUser ? players.findIndex(p => p && p.uid === currentUser.uid) : -1;
   let hr = '';
-  for (let h = lastHole(); h >= firstHole(); h--) {
-    const hole = holes[h], ch = cs[h];
-    const tp   = ch.carry ? ch.t : hole.type;
-    if (!tp) continue;
-    const o  = ord(ch.betHole);
-    const fi = ch.carry ? ch.f : o[0];
-    const pi = ch.carry ? ch.p : (hole.partner !== null ? hole.partner : o[1]);
-    const s  = (stake * ch.n).toFixed(2);
-    const r  = hole.result;
 
-    // Derive result from my perspective
-    let myResult = r;
-    if (r && myIdx >= 0) {
-      if (tp === 'hog') {
-        // hogger wins → non-hoggers lose, and vice versa
-        if (myIdx !== fi) myResult = r === 'win' ? 'lose' : r === 'lose' ? 'win' : r;
-      } else {
-        // 2v2: if I'm on team B, flip result
-        const onTeamB = myIdx !== fi && myIdx !== pi;
-        if (onTeamB) myResult = r === 'win' ? 'lose' : r === 'lose' ? 'win' : r;
+  if (gameType === 'scramble') {
+    const chains = buildScrambleChains();
+    const myTeam = myIdx >= 0 ? scrambleTeams.findIndex(t => t.includes(myIdx)) : -1;
+    const aName  = scrambleTeams[0].map(i => shortName(players[i])).join(' + ');
+    const bName  = scrambleTeams[1].map(i => shortName(players[i])).join(' + ');
+    for (let h = lastHole(); h >= firstHole(); h--) {
+      const r = holes[h].result, ch = chains[h];
+      const s = (stake * ch.n).toFixed(2);
+      if (!r) {
+        hr += `<div class="hr-row hr-row--inprogress"><span class="hr-num">H${h+1}${ch.n>1?' ×'+ch.n:''}</span><span class="hr-inprogress">⛳ In Progress</span></div>`;
+        continue;
       }
-    }
-
-    // Teams display — show winner with trophy
-    const t1Names = `${shortName(players[fi])} + ${shortName(players[pi])}`;
-    const t2Names = o.filter(i => i !== fi && i !== pi).map(i => shortName(players[i])).join(' + ');
-    let teams;
-    if (r === 'tie') {
-      teams = `🔄 Carryover`;
-    } else if (tp === 'hog') {
-      teams = `🐷 ${shortName(players[fi])}`;
-    } else if (r === 'win') {
-      teams = `🏆 ${t1Names}`;
-    } else if (r === 'lose') {
-      teams = `🏆 ${t2Names}`;
-    } else {
-      teams = `${t1Names} vs ${t2Names}`;
-    }
-
-    const badge = myResult === 'win' ? 'win' : myResult === 'lose' ? 'lose' : myResult === 'tie' ? 'tie' : 'pend';
-    const label = myResult === 'win' ? 'Win' : myResult === 'lose' ? 'Lose' : myResult === 'tie' ? 'Tie' : '—';
-
-    // Money from my perspective
-    let moneyStr = '—';
-    if (myResult === 'win')  moneyStr = tp === 'hog' ? (myIdx === fi ? `+$${(stake*ch.n*3).toFixed(2)}` : `+$${s}`) : `+$${s}`;
-    if (myResult === 'lose') moneyStr = tp === 'hog' ? (myIdx === fi ? `−$${(stake*ch.n*3).toFixed(2)}` : `−$${s}`) : `−$${s}`;
-    if (myResult === 'tie')  moneyStr = '→ next';
-
-    if (!r) {
-      hr += `<div class="hr-row hr-row--inprogress">
-        <span class="hr-num">H${h+1}${ch.n > 1 ? ' ×'+ch.n : ''}</span>
-        <span class="hr-inprogress">⛳ Hole in Progress</span>
+      let myResult = r;
+      if (myTeam === 1) myResult = r === 'win' ? 'lose' : r === 'lose' ? 'win' : r;
+      const teams = r === 'tie' ? '🔄 Carryover' : r === 'win' ? `🏆 ${aName}` : `🏆 ${bName}`;
+      const badge = myResult==='win'?'win':myResult==='lose'?'lose':myResult==='tie'?'tie':'pend';
+      const label = myResult==='win'?'Win':myResult==='lose'?'Lose':myResult==='tie'?'Tie':'—';
+      const moneyStr = r==='tie'?'→ next':myResult==='win'?`+$${s}`:`−$${s}`;
+      hr += `<div class="hr-row">
+        <span class="hr-num">H${h+1}${ch.n>1?' ×'+ch.n:''}</span>
+        <span class="hr-teams">${teams}</span>
+        <span class="hr-badge ${badge}">${label}</span>
+        <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
       </div>`;
-      continue;
     }
 
-    hr += `<div class="hr-row">
-      <span class="hr-num">H${h+1}${ch.n > 1 ? ' ×'+ch.n : ''}</span>
-      <span class="hr-teams">${teams}</span>
-      <span class="hr-badge ${badge}">${label}</span>
-      <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
-    </div>`;
+  } else if (gameType === 'stroke') {
+    const skins = buildSkinsResults();
+    for (let i = skins.length - 1; i >= 0; i--) {
+      const {h, pending, tied, winner, n} = skins[i];
+      if (pending) {
+        hr += `<div class="hr-row hr-row--inprogress"><span class="hr-num">H${h+1}${n>1?' ×'+n:''}</span><span class="hr-inprogress">⛳ In Progress</span></div>`;
+        continue;
+      }
+      const myResult = tied ? 'tie' : winner === myIdx ? 'win' : myIdx >= 0 ? 'lose' : null;
+      const badge = myResult==='win'?'win':myResult==='lose'?'lose':myResult==='tie'?'tie':'pend';
+      const label = myResult==='win'?'Win':myResult==='lose'?'Lose':myResult==='tie'?'Tie':'—';
+      const winAmt = (stake * n * (players.length - 1)).toFixed(2);
+      const loseAmt = (stake * n).toFixed(2);
+      const teams    = tied ? '🔄 Carryover' : `🏆 ${shortName(players[winner])}`;
+      const moneyStr = tied ? '→ next' : myResult==='win' ? `+$${winAmt}` : myResult==='lose' ? `−$${loseAmt}` : '—';
+      hr += `<div class="hr-row">
+        <span class="hr-num">H${h+1}${n>1?' ×'+n:''}</span>
+        <span class="hr-teams">${teams}</span>
+        <span class="hr-badge ${badge}">${label}</span>
+        <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
+      </div>`;
+    }
+
+  } else {
+    for (let h = lastHole(); h >= firstHole(); h--) {
+      const hole = holes[h], ch = cs[h];
+      const tp   = ch.carry ? ch.t : hole.type;
+      if (!tp) continue;
+      const o  = ord(ch.betHole);
+      const fi = ch.carry ? ch.f : o[0];
+      const pi = ch.carry ? ch.p : (hole.partner !== null ? hole.partner : o[1]);
+      const s  = (stake * ch.n).toFixed(2);
+      const r  = hole.result;
+      let myResult = r;
+      if (r && myIdx >= 0) {
+        if (tp === 'hog') { if (myIdx !== fi) myResult = r==='win'?'lose':r==='lose'?'win':r; }
+        else { const onTeamB = myIdx!==fi && myIdx!==pi; if (onTeamB) myResult = r==='win'?'lose':r==='lose'?'win':r; }
+      }
+      const t1Names = `${shortName(players[fi])} + ${shortName(players[pi])}`;
+      const t2Names = o.filter(i=>i!==fi&&i!==pi).map(i=>shortName(players[i])).join(' + ');
+      let teams;
+      if (r==='tie') teams='🔄 Carryover';
+      else if (tp==='hog') teams=`🐷 ${shortName(players[fi])}`;
+      else if (r==='win')  teams=`🏆 ${t1Names}`;
+      else if (r==='lose') teams=`🏆 ${t2Names}`;
+      else teams=`${t1Names} vs ${t2Names}`;
+      const badge = myResult==='win'?'win':myResult==='lose'?'lose':myResult==='tie'?'tie':'pend';
+      const label = myResult==='win'?'Win':myResult==='lose'?'Lose':myResult==='tie'?'Tie':'—';
+      let moneyStr = '—';
+      if (myResult==='win')  moneyStr = tp==='hog'?(myIdx===fi?`+$${(stake*ch.n*3).toFixed(2)}`:`+$${s}`):`+$${s}`;
+      if (myResult==='lose') moneyStr = tp==='hog'?(myIdx===fi?`−$${(stake*ch.n*3).toFixed(2)}`:`−$${s}`):`−$${s}`;
+      if (myResult==='tie')  moneyStr = '→ next';
+      if (!r) {
+        hr += `<div class="hr-row hr-row--inprogress"><span class="hr-num">H${h+1}${ch.n>1?' ×'+ch.n:''}</span><span class="hr-inprogress">⛳ Hole in Progress</span></div>`;
+        continue;
+      }
+      hr += `<div class="hr-row">
+        <span class="hr-num">H${h+1}${ch.n>1?' ×'+ch.n:''}</span>
+        <span class="hr-teams">${teams}</span>
+        <span class="hr-badge ${badge}">${label}</span>
+        <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
+      </div>`;
+    }
   }
 
   document.getElementById('hole-results').innerHTML = hr ||
@@ -1254,6 +1583,8 @@ function saveRound() {
     slope:      t.slope,
     holeCount,
     nineChoice: holeCount === 9 ? nineChoice : null,
+    gameType,
+    scrambleTeams: JSON.parse(JSON.stringify(scrambleTeams)),
     players:    [...players],
     stake,
     scores:     scores.map(h => [...h]),
@@ -1363,14 +1694,20 @@ function viewRound(id) {
 
   // Scorecard — use same buildScorecardHalf as live round by temporarily setting globals
   const _cIdx = cIdx, _tIdx = tIdx, _players = players, _scores = scores,
-        _currentHole = currentHole, _scPage = scorecardPage;
+        _currentHole = currentHole, _scPage = scorecardPage,
+        _gameType = gameType, _scrambleTeams = scrambleTeams,
+        _holeCount = holeCount, _nineChoice = nineChoice;
   cIdx = COURSES.findIndex(x => x.name === r.courseName);
   if (cIdx < 0) cIdx = 0;
   tIdx = COURSES[cIdx].tees.findIndex(t => t.n === r.tee);
   if (tIdx < 0) tIdx = 0;
   players = r.players;
   scores  = r.scores;
-  currentHole = -1; // no hole to highlight
+  gameType = r.gameType || 'hog';
+  scrambleTeams = r.scrambleTeams || [[], []];
+  holeCount = r.holeCount || 18;
+  nineChoice = r.nineChoice || 'front';
+  currentHole = -1;
   scorecardPage = 0;
 
   const scFront = buildScorecardHalf(0, 9, 'Front Nine', 'Out');
@@ -1378,6 +1715,8 @@ function viewRound(id) {
 
   cIdx = _cIdx; tIdx = _tIdx; players = _players; scores = _scores;
   currentHole = _currentHole; scorecardPage = _scPage;
+  gameType = _gameType; scrambleTeams = _scrambleTeams;
+  holeCount = _holeCount; nineChoice = _nineChoice;
 
   html += `<div class="totals-section-title">Scorecard</div>
     <div class="totals-sc-viewport" id="hist-sc-viewport">

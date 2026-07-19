@@ -482,6 +482,34 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   color: #fff;
 }
 .nine-choice-row { padding-top: 8px; }
+
+/* ── game type selector ── */
+.game-type-row { display:flex; gap:8px; padding:0 16px 4px }
+.game-type-btn {
+  flex:1; padding:9px 4px; font-size:13px; font-weight:600;
+  font-family:inherit; border:1.5px solid var(--sep);
+  border-radius:var(--r-sm); background:var(--bg3); color:var(--tx2);
+  cursor:pointer; transition:background .15s, color .15s, border-color .15s;
+}
+.game-type-btn.sel { background:var(--blue); border-color:var(--blue); color:#fff; }
+
+/* ── scramble team assignment ── */
+.team-assign-wrap { padding:14px 16px 4px }
+.team-assign-hdr { font-size:13px; color:var(--tx2); margin-bottom:10px; text-align:center }
+.team-assign-cols { display:grid; grid-template-columns:1fr 1fr; gap:10px }
+.team-assign-col  { display:flex; flex-direction:column; gap:6px }
+.team-assign-label { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  text-align:center; padding:4px 0 6px; border-bottom:.5px solid var(--sep2); }
+.team-assign-label.a { color:var(--blue) }
+.team-assign-label.b { color:var(--green) }
+.team-player-btn {
+  padding:8px 10px; border-radius:8px; border:.5px solid var(--sep2);
+  background:var(--bg2); color:var(--tx); font-size:13px; font-weight:500;
+  font-family:inherit; cursor:pointer; text-align:center;
+}
+.team-player-btn.team-a { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); }
+.team-player-btn.team-b { background:var(--green-bg); border-color:var(--green); color:var(--green); }
+.team-assign-hint { font-size:12px; color:var(--tx3); text-align:center; padding:8px 0 4px; }
 .mini-sc-card .sct .stk {
   padding-left:8px; max-width:64px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;

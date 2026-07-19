@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Fairway Vatos">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2F2F7">
+<meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#000000">
+<title>Fairway Vatos</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ════════════════════════════════
+     SCREEN 1 — COURSE SELECT
+════════════════════════════════ -->
+<div class="screen active" id="sc-course">
+  <div class="nav-bar">
+    <div class="nav-row">
+      <div class="nav-large-title">⛳ Fairway Vatos</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="nav-btn" onclick="toggleTheme()" id="theme-btn">☀️</button>
+        <button class="nav-btn" onclick="showHistory()">History</button>
+      </div>
+    </div>
+    <div class="nav-sub">Select a course</div>
+  </div>
+  <div class="content" id="course-list" style="padding-bottom:16px"></div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 2 — SETUP
+════════════════════════════════ -->
+<div class="screen" id="sc-setup">
+  <div class="nav-bar">
+    <div class="nav-row">
+      <div class="nav-title">New Round</div>
+      <button class="nav-btn" onclick="show('sc-course')">← Courses</button>
+    </div>
+    <div class="nav-sub" id="setup-sub"></div>
+  </div>
+  <div class="content">
+    <div class="section">
+      <div class="section-header">Tee box</div>
+      <div class="tee-scroll" id="tee-scroll"></div>
+    </div>
+    <div class="section">
+      <div class="section-header">Players — tee order for hole 1</div>
+      <div class="list-card" id="player-inputs"></div>
+    </div>
+    <div class="section">
+      <div class="section-header">Stake</div>
+      <div class="list-card">
+        <div class="list-row">
+          <span class="list-row-label">Per player · per hole</span>
+          <div class="stake-display">
+            <button class="stake-btn" onclick="adjStake(-1)">−</button>
+            <span class="stake-val" id="stake-val">0.00</span>
+            <button class="stake-btn" onclick="adjStake(1)">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="primary-btn" onclick="startRound()">Start Round</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 3 — ROUND
+════════════════════════════════ -->
+<div class="screen" id="sc-round">
+  <div class="nav-bar" id="round-nav">
+    <div class="nav-row">
+      <button class="nav-arrow" id="btn-prev" onclick="prevHole()">‹</button>
+      <div class="nav-center">
+        <div class="nav-title" id="round-title">Hole 1</div>
+        <div class="nav-sub" id="round-sub"></div>
+      </div>
+      <button class="nav-arrow" id="btn-next" onclick="nextHole()">›</button>
+    </div>
+  </div>
+
+  <!-- Holes tab -->
+  <div style="display:none;flex-direction:column;flex:1;overflow-y:auto" id="tab-holes-wrap">
+    <div id="holes-body" style="padding-bottom:24px"></div>
+  </div>
+
+  <!-- Totals tab -->
+  <div style="display:none;flex:1;overflow-y:auto" id="tab-totals-wrap">
+    <div style="padding-bottom:32px">
+      <div class="money-grid" id="money-grid"></div>
+      <div class="totals-section-title">Scorecard</div>
+      <div style="margin:12px 16px 0"><div class="sc-wrap"><table class="sct" id="sc-table"></table></div></div>
+      <div class="totals-section-title">Hole Results</div>
+      <div class="hole-results" id="hole-results"></div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn on" id="tb-holes" onclick="showTab('holes')">
+      <span class="ti">⛳</span>Holes
+    </button>
+    <button class="tab-btn" id="tb-totals" onclick="showTab('totals')">
+      <span class="ti">💰</span>Totals
+    </button>
+    <button class="tab-btn" onclick="show('sc-course')">
+      <span class="ti">＋</span>New
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 4 — HISTORY
+════════════════════════════════ -->
+<div class="screen" id="sc-history">
+  <div class="nav-bar">
+    <div class="nav-row">
+      <button class="nav-btn" onclick="show('sc-course')">← Back</button>
+      <div class="nav-center">
+        <div class="nav-title">Round History</div>
+      </div>
+      <div style="width:60px"></div>
+    </div>
+  </div>
+  <div class="content" id="history-list" style="padding-bottom:32px"></div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 5 — HISTORY DETAIL
+════════════════════════════════ -->
+<div class="screen" id="sc-history-detail">
+  <div class="nav-bar">
+    <div class="nav-row">
+      <button class="nav-btn" onclick="show('sc-history')">← History</button>
+      <div class="nav-center">
+        <div class="nav-title" id="detail-title">Round</div>
+        <div class="nav-sub"  id="detail-sub"></div>
+      </div>
+      <div style="width:60px"></div>
+    </div>
+  </div>
+  <div class="content" id="history-detail-body" style="padding-bottom:32px"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

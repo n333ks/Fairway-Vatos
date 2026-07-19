@@ -1,0 +1,11 @@
+{
+  "name": "Fairway Vatos",
+  "short_name": "Fairway Vatos",
+  "description": "Golf betting tracker",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000"
+}

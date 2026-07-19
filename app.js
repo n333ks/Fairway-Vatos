@@ -279,6 +279,13 @@ let nineChoice = 'front'; // 'front' or 'back'
 // Compat helper: players can be {name,uid} objects (new) or strings (old history)
 function pname(p) { return typeof p === 'string' ? p : (p && p.name) || 'Player'; }
 
+// "Nick C." format for compact display
+function shortName(p) {
+  const full = pname(p).trim();
+  const parts = full.split(/\s+/);
+  return parts.length > 1 ? parts[0] + ' ' + parts[parts.length - 1][0] + '.' : full;
+}
+
 /* ════════════════════════════════
    CORE LOGIC
 ════════════════════════════════ */
@@ -731,7 +738,8 @@ function buildScorecardHalf(startH, endH, halfLabel, colLabel) {
   if (isBack) tbody += `<td class="sep">${grandPar}</td>`;
   tbody += `</tr>`;
 
-  players.forEach((name, p) => {
+  players.forEach((pl, p) => {
+    const name = shortName(pl);
     const sc = scores.map(h => h[p]);
     const enteredHalf = Array.from({length: endH - startH}, (_, i) => startH + i).filter(h => sc[h] !== null);
     const halfSum  = enteredHalf.reduce((a, h) => a + sc[h], 0);
@@ -872,13 +880,13 @@ function renderHoleBody(h, ch) {
     const bestOther = enteredOther.length ? Math.min(...enteredOther) : null;
     html += `
       <div class="team-section team-hog">
-        <div class="team-label">🐷 ${pname(players[fi])} — hogging</div>
-        ${scoreRowHTML(h, fi, pname(players[fi]))}
+        <div class="team-label">🐷 ${shortName(players[fi])} — hogging</div>
+        ${scoreRowHTML(h, fi, shortName(players[fi]))}
       </div>
       <div class="vs-row"><div class="vs-line"></div><span class="vs-txt">VS</span><div class="vs-line"></div></div>
       <div class="team-section team-b">
         <div class="team-label">Opponents</div>
-        ${others.map(i => scoreRowHTML(h, i, pname(players[i]))).join('')}
+        ${others.map(i => scoreRowHTML(h, i, shortName(players[i]))).join('')}
         <div class="best-row">Best ball <b>${bestOther ?? '—'}</b></div>
       </div>`;
 
@@ -892,10 +900,10 @@ function renderHoleBody(h, ch) {
 
     const partnerPicker = ch.carry ? '' : `
       <div class="partner-row">
-        <div class="partner-lbl">Partner for ${pname(players[fi])}</div>
+        <div class="partner-lbl">Partner for ${shortName(players[fi])}</div>
         <div class="pchip-row">
           ${o.slice(1).map(i =>
-            `<button class="pchip${pi === i ? ' sel' : ''}" onclick="setPartner(${h},${i})">${pname(players[i])}</button>`
+            `<button class="pchip${pi === i ? ' sel' : ''}" onclick="setPartner(${h},${i})">${shortName(players[i])}</button>`
           ).join('')}
         </div>
       </div>`;
@@ -903,14 +911,14 @@ function renderHoleBody(h, ch) {
     html += `
       ${partnerPicker}
       <div class="team-section team-a">
-        <div class="team-label">Team A — ${pname(players[fi])} + ${pname(players[pi])}</div>
-        ${t1.map(i => scoreRowHTML(h, i, pname(players[i]))).join('')}
+        <div class="team-label">Team A — ${shortName(players[fi])} + ${shortName(players[pi])}</div>
+        ${t1.map(i => scoreRowHTML(h, i, shortName(players[i]))).join('')}
         <div class="best-row">Best ball <b>${b1 ?? '—'}</b></div>
       </div>
       <div class="vs-row"><div class="vs-line"></div><span class="vs-txt">VS</span><div class="vs-line"></div></div>
       <div class="team-section team-b">
         <div class="team-label">Team B — ${teamBNames(o, fi, pi)}</div>
-        ${t2.map(i => scoreRowHTML(h, i, pname(players[i]))).join('')}
+        ${t2.map(i => scoreRowHTML(h, i, shortName(players[i]))).join('')}
         <div class="best-row">Best ball <b>${b2 ?? '—'}</b></div>
       </div>`;
 
@@ -918,7 +926,7 @@ function renderHoleBody(h, ch) {
     html += `
       <div class="team-section">
         <div class="team-label" style="color:var(--tx2)">Choose Hog or 2v2 above</div>
-        ${o.map(i => scoreRowHTML(h, i, pname(players[i]))).join('')}
+        ${o.map(i => scoreRowHTML(h, i, shortName(players[i]))).join('')}
       </div>`;
   }
 

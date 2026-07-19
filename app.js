@@ -120,7 +120,7 @@ function listenToRound(key) {
     const transferBtn = document.getElementById('transfer-sk-btn');
     const readonlyBanner = document.getElementById('readonly-banner');
     const skNameEl = document.getElementById('readonly-sk-name');
-    if (transferBtn) transferBtn.style.display = isScorekeeper ? 'inline-block' : 'none';
+    if (transferBtn) transferBtn.disabled = !isScorekeeper;
     if (readonlyBanner) readonlyBanner.style.display = isScorekeeper ? 'none' : 'flex';
     if (skNameEl) skNameEl.textContent = participants[d.scorekeeperUid] || 'scorekeeper';
 
@@ -523,7 +523,7 @@ function updateSubmitBtn() {
   const btn = document.getElementById('submit-scores-btn');
   if (!btn) return;
   const show = isScorekeeper && completedHoleCount() >= 9;
-  btn.style.display = show ? 'inline-block' : 'none';
+  btn.disabled = !show;
 }
 
 function submitScores() {

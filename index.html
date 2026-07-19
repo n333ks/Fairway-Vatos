@@ -165,11 +165,9 @@
       <button class="nav-arrow" id="btn-next" onclick="nextHole()">›</button>
     </div>
     <div class="nav-end-row">
-      <button class="end-round-btn" onclick="endRound()">End Round</button>
-      <div class="nav-end-center">
-        <button class="submit-scores-btn" id="submit-scores-btn" onclick="submitScores()" style="display:none">Submit Scores</button>
-      </div>
-      <button class="transfer-sk-btn" id="transfer-sk-btn" onclick="openTransferModal()" style="display:none">Transfer Control</button>
+      <button class="ner-btn ner-transfer" id="transfer-sk-btn" onclick="openTransferModal()" disabled>Transfer Control</button>
+      <button class="ner-btn ner-end" onclick="endRound()">End Round</button>
+      <button class="ner-btn ner-submit" id="submit-scores-btn" onclick="submitScores()" disabled>Submit Scores</button>
     </div>
     <div class="readonly-banner" id="readonly-banner" style="display:none">
       👁 Watching · <span id="readonly-sk-name">scorekeeper</span> is keeping score<span id="readonly-seq" style="opacity:0.4;font-size:11px"></span>

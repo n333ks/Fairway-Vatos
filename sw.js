@@ -1,11 +1,12 @@
-const CACHE = 'fairway-vatos-v3';
+const CACHE = 'fairway-vatos-v4';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.json',
-  './icon.png'
+  './icon.png',
+  './app_icon.png'
 ];
 
 self.addEventListener('install', e => {

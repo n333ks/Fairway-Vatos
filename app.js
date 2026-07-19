@@ -818,8 +818,7 @@ function scoreBadge(sc, par) {
   if (d ===  1) return {cls:'b-over',     txt:'Bogey'};
   if (d ===  2) return {cls:'b-over',     txt:'Double'};
   if (d ===  3) return {cls:'b-over',     txt:'You Suck'};
-  if (d ===  4) return {cls:'b-over',     txt:'You Really Suck'};
-  if (d >=   5) return {cls:'b-over',     txt:'Just Quit'};
+  if (d >=   4) return {cls:'b-over',     txt:'Just Quit'};
   return {cls:'b-over', txt:'+'+d};
 }
 
@@ -966,7 +965,7 @@ function adjScore(h, p, d) {
   if (!isScorekeeper) return;
   const par = COURSES[cIdx].par[h];
   if (scores[h][p] === null) { scores[h][p] = par; }
-  else { scores[h][p] = Math.min(par * 2, Math.max(1, scores[h][p] + d)); }
+  else { scores[h][p] = Math.min(10, Math.max(1, scores[h][p] + d)); }
   touched[h][p]  = true;
 
   const sc = scores[h][p], b = scoreBadge(sc, par);

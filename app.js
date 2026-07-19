@@ -1202,6 +1202,21 @@ function fmtCell(s, par, hlCls = '') {
 /* ════════════════════════════════
    ROUND HISTORY
 ════════════════════════════════ */
+function roundToFS(r) {
+  const obj = {...r};
+  // Firestore doesn't allow nested arrays — serialize scores as keyed object
+  obj.scores = {};
+  r.scores.forEach((hole, h) => { obj.scores[h] = [...hole]; });
+  return obj;
+}
+
+function roundFromFS(obj) {
+  const r = {...obj};
+  const s = obj.scores || {};
+  r.scores = Array.from({length: 18}, (_, h) => s[h] || []);
+  return r;
+}
+
 function saveRound() {
   if (!players.length) return;
   // Require at least 9 completed holes
@@ -1246,10 +1261,18 @@ function saveRound() {
     money:      [...money],
     scoreDiffs
   };
+  // localStorage cache (fast offline access)
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
   const idx  = hist.findIndex(r => r.id === id);
   if (idx >= 0) hist[idx] = round; else hist.unshift(round);
   localStorage.setItem('hog_rounds', JSON.stringify(hist.slice(0, 100)));
+
+  // Firestore (persistent, cross-device)
+  if (currentUser) {
+    db.collection('users').doc(currentUser.uid)
+      .collection('rounds').doc(String(id))
+      .set(roundToFS(round));
+  }
 }
 
 function deleteRound(id, e) {
@@ -1257,33 +1280,57 @@ function deleteRound(id, e) {
   if (!confirm('Delete this round? This cannot be undone.')) return;
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
   localStorage.setItem('hog_rounds', JSON.stringify(hist.filter(r => r.id !== id)));
+  if (currentUser) {
+    db.collection('users').doc(currentUser.uid).collection('rounds').doc(String(id)).delete();
+  }
   showHistory();
 }
 
-function showHistory() {
-  const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
-  const el   = document.getElementById('history-list');
+function renderHistoryList(hist) {
+  const el = document.getElementById('history-list');
   if (!hist.length) {
     el.innerHTML = `<div class="history-empty">No rounds saved yet.<br>Finish a hole and check Totals to auto-save.</div>`;
-  } else {
-    el.innerHTML = hist.map(r => {
-      const d    = new Date(r.date);
-      const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-      const time = d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
-      return `<div class="history-card" onclick="viewRound(${r.id})">
-        <div class="history-card-top">
-          <div class="history-card-course">${r.courseSub}</div>
-          <div class="history-card-chevron">›</div>
-        </div>
-        <div class="history-card-tee">${date} · ${r.tee} tees · $${r.stake.toFixed(2)}/hole</div>
-        ${playerRowHTML(r.players, r.money)}
-        <div class="history-card-actions">
-          <button class="delete-btn" onclick="deleteRound(${r.id}, event)">Delete</button>
-        </div>
-      </div>`;
-    }).join('');
+    return;
   }
+  el.innerHTML = hist.map(r => {
+    const d    = new Date(r.date);
+    const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    return `<div class="history-card" onclick="viewRound(${r.id})">
+      <div class="history-card-top">
+        <div class="history-card-course">${r.courseSub}</div>
+        <div class="history-card-chevron">›</div>
+      </div>
+      <div class="history-card-tee">${date} · ${r.tee} tees · $${r.stake.toFixed(2)}/hole</div>
+      ${playerRowHTML(r.players, r.money)}
+      <div class="history-card-actions">
+        <button class="delete-btn" onclick="deleteRound(${r.id}, event)">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function showHistory() {
   show('sc-history');
+  const el = document.getElementById('history-list');
+
+  if (currentUser) {
+    el.innerHTML = `<div class="history-empty" style="padding-top:48px">Loading…</div>`;
+    try {
+      const snap = await db.collection('users').doc(currentUser.uid)
+        .collection('rounds').orderBy('date', 'desc').get();
+      const hist = snap.docs.map(d => roundFromFS(d.data()));
+      // Refresh localStorage cache so viewRound, handicap, leaderboard work
+      localStorage.setItem('hog_rounds', JSON.stringify(hist));
+      renderHistoryList(hist);
+    } catch(err) {
+      // Fall back to local cache on network error
+      const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
+      renderHistoryList(hist);
+    }
+  } else {
+    const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
+    renderHistoryList(hist);
+  }
 }
 
 function viewRound(id) {

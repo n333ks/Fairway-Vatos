@@ -822,7 +822,7 @@ function renderTotals() {
     }
 
     const badge = r === 'win' ? 'win' : r === 'lose' ? 'lose' : r === 'tie' ? 'tie' : 'pend';
-    const label = r === 'win' ? 'Win' : r === 'lose' ? 'Lose' : r === 'tie' ? 'Tied' : '—';
+    const label = r === 'win' ? 'Win' : r === 'lose' ? 'Lose' : r === 'tie' ? '🔄 Carry' : '—';
 
     let moneyStr = '—';
     if (r === 'win')  moneyStr = tp === 'hog' ? `+$${(stake*ch.n*3).toFixed(2)}` : `+$${s}`;

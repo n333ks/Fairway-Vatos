@@ -375,8 +375,8 @@ table.sct .stk {
 table.sct thead th       { background:var(--bg4); color:var(--tx2); font-weight:600 }
 table.sct thead th.stk   { background:var(--bg4) }
 table.sct .par-row td    { color:var(--tx2) }
-table.sct .sep           { background:var(--bg3) !important; font-weight:600 }
-table.sct .sep.stk       { background:var(--bg3) !important }
+table.sct .sep           { background:var(--bg4) !important; font-weight:600 }
+table.sct .sep.stk       { background:var(--bg4) !important }
 table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 
 .ca { background:rgba(255,214,10,0.18); color:var(--yellow); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px }

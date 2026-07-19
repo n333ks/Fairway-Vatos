@@ -751,18 +751,7 @@ function renderTotals() {
       tbody2 += `<tr><td class="stk">${name}</td>`;
       for (let h = startH; h < endH; h++) {
         if (sc[h] === null) { tbody2 += `<td style="color:var(--tx3)">—</td>`; continue; }
-        const ch = cs[h], hole = holes[h];
-        const o  = ord(ch.betHole);
-        const fi = ch.carry ? ch.f : o[0];
-        const pi = ch.carry ? ch.p : (hole.partner !== null ? hole.partner : o[1]);
-        const tp = ch.carry ? ch.t : hole.type;
-        const t1 = tp === 'hog' ? [fi] : tp === '2v2' ? [fi, pi] : [];
-        const onWinTeam  = hole.result === 'win'  && t1.includes(p);
-        const onLoseTeam = (hole.result === 'lose' && t1.includes(p)) ||
-                           (hole.result === 'win'  && t1.length > 0 && !t1.includes(p));
-        const onTie      = hole.result === 'tie' && tp;
-        const hlCls = onWinTeam ? 'hl-win' : onLoseTeam ? 'hl-lose' : onTie ? 'hl-tie' : '';
-        tbody2 += `<td>${fmtCell(sc[h], par[h], hlCls)}</td>`;
+        tbody2 += `<td>${fmtCell(sc[h], par[h])}</td>`;
       }
       tbody2 += `<td class="sep" style="font-weight:700">${halfDisp}</td>`;
       if (isBack) tbody2 += `<td class="sep" style="font-weight:700">${grandCell}</td>`;
@@ -819,9 +808,18 @@ function renderTotals() {
     const s  = (stake * ch.n).toFixed(2);
     const r  = hole.result;
 
-    const teams = tp === 'hog'
-      ? `🐷 ${players[fi]} vs all`
-      : `${players[fi]} + ${players[pi]} vs ${teamBNames(o, fi, pi)}`;
+    const t1Names = `${players[fi]} + ${players[pi]}`;
+    const t2Names = teamBNames(o, fi, pi);
+    let teams;
+    if (tp === 'hog') {
+      teams = `🐷 ${players[fi]} vs all`;
+    } else if (r === 'win') {
+      teams = `🏆 ${t1Names}`;
+    } else if (r === 'lose') {
+      teams = `🏆 ${t2Names}`;
+    } else {
+      teams = `${t1Names} vs ${t2Names}`;
+    }
 
     const badge = r === 'win' ? 'win' : r === 'lose' ? 'lose' : r === 'tie' ? 'tie' : 'pend';
     const label = r === 'win' ? 'Win' : r === 'lose' ? 'Lose' : r === 'tie' ? 'Tied' : '—';

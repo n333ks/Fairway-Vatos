@@ -464,6 +464,14 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .tab-btn .ti { font-size:24px; line-height:1 }
 .tab-btn.on  { color:var(--blue) }
 
+/* ── app logo ── */
+.app-logo {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
 /* ── totals section titles ── */
 .totals-section-title {
   font-size:22px; font-weight:700; letter-spacing:-0.4px;

@@ -390,7 +390,7 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .hl-tie  { outline: 2px solid var(--orange); border-radius:3px }
 
 /* ── hole results list ── */
-.hole-results { background:var(--bg2); border-radius:var(--r); overflow:hidden; margin:16px 16px 0; box-shadow:var(--shadow) }
+.hole-results { background:var(--bg2); border-radius:var(--r); overflow:hidden; margin:16px; box-shadow:var(--shadow) }
 .hr-row {
   display:flex; align-items:center; gap:10px;
   padding:12px 16px; border-bottom:0.5px solid var(--sep2); font-size:14px;

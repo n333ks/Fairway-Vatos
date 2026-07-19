@@ -295,6 +295,10 @@ body {
 }
 .sc-row:last-of-type { margin-bottom:0 }
 .sc-name { flex:1; font-size:16px; color:var(--tx) }
+.scr-members { font-size:12px; font-weight:500; margin-bottom:2px; letter-spacing:.01em }
+.scr-members-a { color:var(--blue) }
+.scr-members-b { color:var(--red) }
+.team-a .sc-name, .team-b .sc-name { font-size:19px; font-weight:700; color:var(--tx) }
 .sc-btn {
   width:34px; height:34px; border-radius:50%;
   background:var(--bg3); border:none;

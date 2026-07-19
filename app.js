@@ -349,8 +349,21 @@ function renderHoles() {
 
   const stakeTag = ch.n > 1
     ? `<span class="carry-tag">$${(stake * ch.n).toFixed(2)}/player</span>` : '';
-  const blocked = (h < 17 && !allTouched)
-    ? `<div class="next-hole-blocked">Enter all scores to continue</div>` : '';
+
+  const isLastHole   = h === lastHole();
+  const holeType     = holes[h].type;
+  const needsPartner = holeType === '2v2' && holes[h].partner === null;
+  const holeReady    = allTouched && holeType && !needsPartner;
+
+  const blocked = !allTouched
+    ? `<div class="next-hole-blocked">Enter all scores to continue</div>`
+    : !holeType
+      ? `<div class="next-hole-blocked">Choose a game type above</div>`
+      : needsPartner
+        ? `<div class="next-hole-blocked">Choose teams above</div>`
+        : isLastHole
+          ? ''
+          : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
   const body = document.getElementById('holes-body');
   body.innerHTML = `
     <div class="hole-card${ch.carry ? ' carry' : ''}" id="hole-${h}">
@@ -714,7 +727,13 @@ function renderTotals() {
       const sc = scores.map(h => h[p]);
       const enteredHalf = Array.from({length: endH - startH}, (_, i) => startH + i).filter(h => sc[h] !== null);
       const halfSum  = enteredHalf.reduce((a, h) => a + sc[h], 0);
-      const halfDisp = enteredHalf.length ? halfSum : '—';
+      const halfEntP = enteredHalf.reduce((a, h) => a + par[h], 0);
+      const halfDiff = halfSum - halfEntP;
+      const halfCol  = halfDiff < 0 ? 'var(--green)' : halfDiff > 0 ? 'var(--red)' : 'var(--tx2)';
+      const halfDStr = halfDiff === 0 ? 'E' : (halfDiff > 0 ? '+' : '') + halfDiff;
+      const halfDisp = enteredHalf.length
+        ? `${halfSum}<br><span style="font-size:10px;color:${halfCol}">${halfDStr}</span>`
+        : '—';
 
       let grandCell = '—';
       if (isBack) {

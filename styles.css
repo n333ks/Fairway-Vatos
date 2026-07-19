@@ -749,8 +749,7 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   text-transform: uppercase; letter-spacing: 0.4px }
 .home-recent-chevron { font-size: 18px; color: var(--tx3) }
 .home-recent-course { font-size: 17px; font-weight: 600; margin-bottom: 2px }
-.home-recent-meta   { font-size: 13px; color: var(--tx2); margin-bottom: 12px }
-.home-recent-pills  { display: flex; flex-wrap: wrap; gap: 6px }
+.home-recent-meta   { font-size: 13px; color: var(--tx2); margin-bottom: 14px }
 
 /* ── end round button ── */
 .nav-end-row {
@@ -912,19 +911,24 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .history-card:active { opacity: .7 }
 .history-card-top {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 .history-card-course { font-size:17px; font-weight:600 }
-.history-card-date   { font-size:13px; color:var(--tx2) }
-.history-card-tee    { font-size:13px; color:var(--tx2); margin-bottom:10px }
-.history-card-money  { display:flex; flex-wrap:wrap; gap:6px }
-.history-money-pill  {
-  font-size:13px; font-weight:600; padding:4px 10px;
-  border-radius:20px;
-}
-.history-money-pill.pos { background:var(--green-bg); color:var(--green) }
-.history-money-pill.neg { background:var(--red-bg);   color:var(--red)   }
-.history-money-pill.neu { background:var(--bg3);      color:var(--tx2)   }
+.history-card-tee     { font-size:13px; color:var(--tx2); margin-bottom:14px }
+.history-card-chevron { font-size:18px; color:var(--tx3) }
+
+.card-player-row { display:flex; gap:0 }
+.card-player     { display:flex; flex-direction:column; align-items:center; gap:5px; flex:1 }
+.card-avatar     { width:36px; height:36px; border-radius:50%; display:flex; align-items:center;
+                   justify-content:center; font-size:12px; font-weight:600; border:0.5px solid var(--sep2) }
+.card-avatar.pos { background:var(--green-bg); color:var(--green) }
+.card-avatar.neg { background:var(--red-bg);   color:var(--red)   }
+.card-avatar.neu { background:var(--bg3);      color:var(--tx2)   }
+.card-pname      { font-size:11px; color:var(--tx2) }
+.card-pamount    { font-size:12px; font-weight:600; font-variant-numeric:tabular-nums }
+.card-pamount.pos { color:var(--green) }
+.card-pamount.neg { color:var(--red)   }
+.card-pamount.neu { color:var(--tx2)   }
 .history-empty {
   padding:48px 16px; text-align:center;
   color:var(--tx2); font-size:16px; line-height:1.5;

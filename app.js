@@ -280,6 +280,24 @@ let nineChoice = 'front'; // 'front' or 'back'
 function pname(p) { return typeof p === 'string' ? p : (p && p.name) || 'Player'; }
 
 // First name only for compact display
+function initials(p) {
+  const parts = pname(p).trim().split(/\s+/);
+  return parts.length >= 2 ? parts[0][0] + parts[1][0] : parts[0].slice(0,2);
+}
+
+function playerRowHTML(players, money) {
+  return `<div class="card-player-row">${players.map((p, i) => {
+    const m = money[i];
+    const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
+    const amt = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(0);
+    return `<div class="card-player">
+      <div class="card-avatar ${cls}">${initials(p)}</div>
+      <div class="card-pname">${shortName(p)}</div>
+      <div class="card-pamount ${cls}">${amt}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
 function shortName(p) {
   return pname(p).trim().split(/\s+/)[0];
 }
@@ -1252,19 +1270,13 @@ function showHistory() {
       const d    = new Date(r.date);
       const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
       const time = d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
-      const pills = r.players.map((p, i) => {
-        const m   = r.money[i];
-        const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
-        const amt = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
-        return `<span class="history-money-pill ${cls}">${pname(p)} ${amt}</span>`;
-      }).join('');
       return `<div class="history-card" onclick="viewRound(${r.id})">
         <div class="history-card-top">
           <div class="history-card-course">${r.courseSub}</div>
-          <div class="history-card-date">${date} · ${time}</div>
+          <div class="history-card-chevron">›</div>
         </div>
-        <div class="history-card-tee">${r.tee} tees · $${r.stake.toFixed(2)}/hole</div>
-        <div class="history-card-money">${pills}</div>
+        <div class="history-card-tee">${date} · ${r.tee} tees · $${r.stake.toFixed(2)}/hole</div>
+        ${playerRowHTML(r.players, r.money)}
         <div class="history-card-actions">
           <button class="delete-btn" onclick="deleteRound(${r.id}, event)">Delete</button>
         </div>
@@ -1619,12 +1631,6 @@ function renderHomeRecent() {
   const r    = hist[0];
   const d    = new Date(r.date);
   const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-  const pills = r.players.map((p, i) => {
-    const m   = r.money[i];
-    const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
-    const amt = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
-    return `<span class="history-money-pill ${cls}">${pname(p)} ${amt}</span>`;
-  }).join('');
   recentEl.innerHTML = `<div class="home-recent-card" onclick="viewRound(${r.id}); show('sc-history-detail')">
     <div class="home-recent-hdr">
       <span class="home-recent-label">Recent Round</span>
@@ -1632,7 +1638,7 @@ function renderHomeRecent() {
     </div>
     <div class="home-recent-course">${r.courseSub || r.course}</div>
     <div class="home-recent-meta">${date} · ${r.tee} tees · $${r.stake}/hole</div>
-    <div class="home-recent-pills">${pills}</div>
+    ${playerRowHTML(r.players, r.money)}
   </div>`;
 }
 

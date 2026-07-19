@@ -143,6 +143,12 @@ function show(id) {
   document.getElementById(id).classList.add('active');
 }
 
+function goHome() {
+  if (players.length) saveSession();
+  renderHomeRecent();
+  show('sc-home');
+}
+
 function showTab(t) {
   document.getElementById('tab-holes-wrap').style.display  = t === 'holes'  ? 'flex' : 'none';
   document.getElementById('tab-totals-wrap').style.display = t === 'totals' ? 'flex' : 'none';

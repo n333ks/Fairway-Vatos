@@ -407,8 +407,39 @@ function goHome() {
   show('sc-home');
 }
 
+function completedHoleCount() {
+  return activeHoles().filter(h => touched[h].every(t => t)).length;
+}
+
+function updateSubmitBtn() {
+  const btn = document.getElementById('submit-scores-btn');
+  if (!btn) return;
+  const show = isScorekeeper && completedHoleCount() >= 9;
+  btn.style.display = show ? 'inline-block' : 'none';
+}
+
+function submitScores() {
+  const done = completedHoleCount();
+  if (done < 9) return;
+  const msg = done < holeCount
+    ? `Submit scores for ${done} completed holes? Only the first 9 will count toward handicap.`
+    : `Submit your ${done}-hole round?`;
+  if (!confirm(msg)) return;
+  saveRound();
+  if (roundListener) { roundListener(); roundListener = null; }
+  if (joinCode && isScorekeeper) {
+    db.collection('activeRounds').doc(codeKey(joinCode)).delete().catch(() => {});
+  }
+  joinCode = null; isScorekeeper = false; participants = {};
+  clearSession();
+  players = []; scores = []; holes = []; touched = [];
+  currentHole = 0; currentRoundId = null;
+  renderHomeRecent();
+  show('sc-home');
+}
+
 function endRound() {
-  if (!confirm('End this round? Your progress will be lost.')) return;
+  if (!confirm('End this round? Scores will not be saved.')) return;
   if (roundListener) { roundListener(); roundListener = null; }
   if (joinCode && isScorekeeper) {
     db.collection('activeRounds').doc(codeKey(joinCode)).delete().catch(() => {});
@@ -644,6 +675,7 @@ async function startRound() {
    SCREEN 3 — HOLES TAB
 ════════════════════════════════ */
 function renderHoles() {
+  updateSubmitBtn();
   const cs  = buildChains();
   const c   = COURSES[cIdx], t = c.tees[tIdx];
   const h   = currentHole;
@@ -1008,6 +1040,7 @@ function setPartner(h, idx) {
    SCREEN 3 — TOTALS TAB
 ════════════════════════════════ */
 function renderTotals() {
+  updateSubmitBtn();
   saveRound();
   const money = calcMoney();
   const c     = COURSES[cIdx];
@@ -1143,11 +1176,17 @@ function saveRound() {
   currentRoundId = id;
   const t = COURSES[cIdx].tees[tIdx];
   // Score diff only uses active holes gross score
-  const scoreDiffs = (t.rating != null)
+  // For handicap: use all holes if 9-hole round or full 18 completed;
+  // if partial 18, only count the first 9 completed holes
+  const hdcpHoles = (() => {
+    const completed = ah.filter(h => touched[h].every(t => t));
+    if (holeCount === 9 || completed.length >= 18) return completed;
+    return completed.slice(0, 9);
+  })();
+  const scoreDiffs = (t.rating != null && hdcpHoles.length >= 9)
     ? players.map((_, p) => {
-        const gross = ah.reduce((sum, h) => sum + (scores[h][p] || 0), 0);
-        // For 9-hole rounds adjust rating and slope to 9-hole equivalents
-        const adjRating = holeCount === 9 ? t.rating / 2 : t.rating;
+        const gross = hdcpHoles.reduce((sum, h) => sum + (scores[h][p] || 0), 0);
+        const adjRating = hdcpHoles.length === 9 ? t.rating / 2 : t.rating;
         const adjSlope  = t.slope;
         return parseFloat(((113 / adjSlope) * (gross - adjRating)).toFixed(1));
       })
@@ -1513,7 +1552,6 @@ function renderHomeRecent() {
         <div class="home-primary-text">
           <div class="home-primary-title">Continue Round</div>
           <div class="home-primary-sub">${courseSub} · ${tee} tees · Through hole ${holesIn}</div>
-          <div class="home-primary-sub">${playerList}</div>
         </div>
         <div class="home-primary-chevron">›</div>
       </button>`;

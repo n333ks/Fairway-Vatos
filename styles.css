@@ -771,6 +771,18 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   padding: 8px 24px;
 }
 .end-round-btn:active { opacity: .6 }
+.submit-scores-btn {
+  background: var(--blue-bg);
+  border: none;
+  border-radius: 20px;
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 8px 24px;
+}
+.submit-scores-btn:active { opacity: .6 }
 
 /* ── continue round variant ── */
 .home-primary-btn--continue {

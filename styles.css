@@ -657,7 +657,7 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   table-layout: fixed;
   width: 100%;
 }
-.totals-sc-half .sct .stk { width: 52px }
+.totals-sc-half .sct .stk { width: 72px }
 .totals-sc-half .sct .sep { width: 36px }
 
 /* ── totals scorecard split layout ── */

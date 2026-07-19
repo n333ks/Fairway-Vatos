@@ -279,11 +279,9 @@ let nineChoice = 'front'; // 'front' or 'back'
 // Compat helper: players can be {name,uid} objects (new) or strings (old history)
 function pname(p) { return typeof p === 'string' ? p : (p && p.name) || 'Player'; }
 
-// "Nick C." format for compact display
+// First name only for compact display
 function shortName(p) {
-  const full = pname(p).trim();
-  const parts = full.split(/\s+/);
-  return parts.length > 1 ? parts[0] + ' ' + parts[parts.length - 1][0] + '.' : full;
+  return pname(p).trim().split(/\s+/)[0];
 }
 
 /* ════════════════════════════════

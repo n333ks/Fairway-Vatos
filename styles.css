@@ -514,6 +514,69 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   object-fit: contain;
 }
 
+/* ── overlays ── */
+.overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.overlay-card {
+  background: var(--bg2);
+  border-radius: 20px;
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.overlay-title {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.4px; color: var(--tx);
+}
+.overlay-sub {
+  font-size: 14px; color: var(--tx2); text-align: center;
+}
+.join-code-display {
+  font-size: 42px; font-weight: 800; letter-spacing: 6px;
+  color: var(--blue); margin: 8px 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+.join-code-input {
+  width: 100%;
+  margin: 12px 0 4px;
+  padding: 14px 16px;
+  font-size: 22px; font-weight: 700; letter-spacing: 4px;
+  text-align: center;
+  background: var(--bg3);
+  border: 1.5px solid var(--sep);
+  border-radius: var(--r-sm);
+  color: var(--tx);
+  font-family: inherit;
+  outline: none;
+}
+.readonly-banner {
+  background: var(--orange-bg);
+  color: var(--orange);
+  font-size: 13px; font-weight: 500;
+  padding: 6px 16px;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.transfer-sk-btn {
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-left: 8px;
+}
 /* ── login screen ── */
 .login-wrap {
   flex: 1;

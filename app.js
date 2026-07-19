@@ -11,9 +11,14 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+const db   = firebase.firestore();
 
-let currentUser = null;
-let loginMode   = 'signin'; // 'signin' or 'create'
+let currentUser    = null;
+let loginMode      = 'signin';
+let joinCode       = null;   // e.g. 'GHT-492'
+let isScorekeeper  = false;
+let roundListener  = null;   // Firestore unsubscribe fn
+let participants   = {};     // { uid: displayName } for all phones in this round
 
 function emailFor(name) {
   return name.trim().toLowerCase().replace(/\s+/g, '.') + '@fairwayvatos.app';
@@ -61,7 +66,158 @@ function submitLogin() {
 
 function logoutUser() {
   if (!confirm('Sign out?')) return;
+  if (roundListener) { roundListener(); roundListener = null; }
   auth.signOut();
+}
+
+/* ════════════════════════════════
+   FIRESTORE — MULTIPLAYER
+════════════════════════════════ */
+function generateJoinCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s.slice(0, 3) + '-' + s.slice(3);
+}
+
+function codeKey(code) { return code.replace('-', ''); }
+
+function syncToFirestore() {
+  if (!joinCode || !isScorekeeper) return;
+  db.collection('activeRounds').doc(codeKey(joinCode)).update({
+    scores, holes, touched, currentHole
+  }).catch(() => {});
+}
+
+function listenToRound(key) {
+  if (roundListener) { roundListener(); roundListener = null; }
+  roundListener = db.collection('activeRounds').doc(key).onSnapshot(snap => {
+    if (!snap.exists) return;
+    const d = snap.data();
+
+    participants = d.participants || {};
+
+    const wasScorekeeper = isScorekeeper;
+    isScorekeeper = !!(currentUser && d.scorekeeperUid === currentUser.uid);
+
+    if (!isScorekeeper) {
+      cIdx = d.courseIdx; tIdx = d.teeIdx;
+      players = d.players; stake = d.stake;
+      holeCount = d.holeCount; nineChoice = d.nineChoice;
+      scores = d.scores; holes = d.holes; touched = d.touched;
+      currentHole = d.currentHole;
+    }
+
+    // Update transfer button & readonly banner
+    const transferBtn = document.getElementById('transfer-sk-btn');
+    const readonlyBanner = document.getElementById('readonly-banner');
+    const skNameEl = document.getElementById('readonly-sk-name');
+    if (transferBtn) transferBtn.style.display = isScorekeeper ? 'inline-block' : 'none';
+    if (readonlyBanner) readonlyBanner.style.display = isScorekeeper ? 'none' : 'flex';
+    if (skNameEl) {
+      const skName = participants[d.scorekeeperUid] || 'scorekeeper';
+      skNameEl.textContent = skName;
+    }
+
+    // Re-render if on round screen
+    if (document.getElementById('sc-round').classList.contains('active')) {
+      if (document.getElementById('tab-holes-wrap').style.display !== 'none') renderHoles();
+      else renderTotals();
+    }
+  });
+}
+
+function showJoincodeOverlay(code) {
+  document.getElementById('joincode-display').textContent = code;
+  document.getElementById('joincode-overlay').style.display = 'flex';
+}
+
+function dismissJoincodeOverlay() {
+  document.getElementById('joincode-overlay').style.display = 'none';
+}
+
+function openJoinModal() {
+  document.getElementById('join-code-input').value = '';
+  document.getElementById('join-error').textContent = '';
+  document.getElementById('join-submit-btn').disabled = false;
+  document.getElementById('join-submit-btn').textContent = 'Join Round';
+  document.getElementById('join-modal').style.display = 'flex';
+}
+
+function closeJoinModal() {
+  document.getElementById('join-modal').style.display = 'none';
+}
+
+function formatJoinInput(el) {
+  let v = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (v.length > 3) v = v.slice(0, 3) + '-' + v.slice(3, 6);
+  el.value = v;
+}
+
+async function joinRound() {
+  const raw  = document.getElementById('join-code-input').value.trim().toUpperCase();
+  const key  = raw.replace('-', '').replace(/[^A-Z0-9]/g, '');
+  const errEl = document.getElementById('join-error');
+  errEl.textContent = '';
+  if (key.length !== 6) { errEl.textContent = 'Enter a 6-character code.'; return; }
+
+  const btn = document.getElementById('join-submit-btn');
+  btn.disabled = true; btn.textContent = 'Joining…';
+
+  try {
+    const snap = await db.collection('activeRounds').doc(key).get();
+    if (!snap.exists) {
+      errEl.textContent = 'Round not found. Check the code.';
+      btn.disabled = false; btn.textContent = 'Join Round';
+      return;
+    }
+    const d = snap.data();
+    joinCode      = d.joinCode;
+    cIdx          = d.courseIdx; tIdx = d.teeIdx;
+    players       = d.players;   stake = d.stake;
+    holeCount     = d.holeCount; nineChoice = d.nineChoice;
+    scores        = d.scores;    holes = d.holes;
+    touched       = d.touched;   currentHole = d.currentHole;
+    isScorekeeper = d.scorekeeperUid === currentUser.uid;
+    scorecardPage = nineChoice === 'back' ? 1 : 0;
+
+    const myName = currentUser.displayName || currentUser.email.split('@')[0];
+    await db.collection('activeRounds').doc(key).update({
+      [`participants.${currentUser.uid}`]: myName
+    });
+
+    closeJoinModal();
+    listenToRound(key);
+    clearSession();
+    showTab('holes');
+    renderHoles();
+    show('sc-round');
+  } catch (e) {
+    errEl.textContent = 'Error joining. Try again.';
+    btn.disabled = false; btn.textContent = 'Join Round';
+  }
+}
+
+function openTransferModal() {
+  const list = document.getElementById('transfer-list');
+  list.innerHTML = Object.entries(participants)
+    .filter(([uid]) => uid !== currentUser.uid)
+    .map(([uid, name]) =>
+      `<button class="primary-btn" style="background:var(--bg2);color:var(--tx);border:1.5px solid var(--sep)"
+               onclick="transferScorekeeper('${uid}','${name}')">${name}</button>`
+    ).join('');
+  if (!list.innerHTML) list.innerHTML = '<div style="color:var(--tx2);font-size:14px;text-align:center">No other players have joined yet.</div>';
+  document.getElementById('transfer-modal').style.display = 'flex';
+}
+
+function closeTransferModal() {
+  document.getElementById('transfer-modal').style.display = 'none';
+}
+
+async function transferScorekeeper(uid, name) {
+  if (!isScorekeeper || !joinCode) return;
+  await db.collection('activeRounds').doc(codeKey(joinCode)).update({ scorekeeperUid: uid });
+  closeTransferModal();
 }
 
 /* ════════════════════════════════
@@ -227,6 +383,11 @@ function goHome() {
 
 function endRound() {
   if (!confirm('End this round? Your progress will be lost.')) return;
+  if (roundListener) { roundListener(); roundListener = null; }
+  if (joinCode && isScorekeeper) {
+    db.collection('activeRounds').doc(codeKey(joinCode)).delete().catch(() => {});
+  }
+  joinCode = null; isScorekeeper = false; participants = {};
   clearSession();
   players = [];
   scores = []; holes = []; touched = [];
@@ -354,6 +515,7 @@ function continueRound() {
   scores = s.scores; holes = s.holes; touched = s.touched;
   currentHole = s.currentHole; currentRoundId = s.currentRoundId;
   holeCount = s.holeCount || 18; nineChoice = s.nineChoice || 'front';
+  isScorekeeper = true; // local session = always scorekeeper
   showTab('holes');
   renderHoles();
   show('sc-round');
@@ -374,7 +536,7 @@ function selNineChoice(c) {
   });
 }
 
-function startRound() {
+async function startRound() {
   const inputs = document.querySelectorAll('#player-inputs input');
   players = [0,1,2,3].map(i => inputs[i].value.trim() || 'Player ' + (i+1));
   scores  = Array.from({length:18}, () => players.map(() => null));
@@ -383,10 +545,32 @@ function startRound() {
   currentHole    = firstHole();
   scorecardPage  = nineChoice === 'back' ? 1 : 0;
   currentRoundId = null;
+  isScorekeeper  = true;
   clearSession();
+
+  // Create live Firestore round
+  joinCode = generateJoinCode();
+  const key = codeKey(joinCode);
+  const myName = currentUser ? (currentUser.displayName || currentUser.email.split('@')[0]) : players[0];
+  participants = { [currentUser.uid]: myName };
+
+  await db.collection('activeRounds').doc(key).set({
+    joinCode,
+    courseIdx: cIdx, teeIdx: tIdx,
+    players, stake, holeCount, nineChoice,
+    scores, holes, touched, currentHole,
+    scorekeeperUid: currentUser.uid,
+    participants,
+    createdBy: currentUser.uid,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    status: 'active'
+  });
+
+  listenToRound(key);
   showTab('holes');
   renderHoles();
   show('sc-round');
+  showJoincodeOverlay(joinCode);
 }
 
 /* ════════════════════════════════
@@ -449,8 +633,11 @@ function renderHoles() {
 }
 
 function goToHole(h) {
+  if (!isScorekeeper) return;
   currentHole   = h;
   scorecardPage = h < 9 ? 0 : 1;
+  saveSession();
+  syncToFirestore();
   renderHoles();
   document.getElementById('tab-holes-wrap').scrollTop = 0;
 }
@@ -708,6 +895,7 @@ function renderHoleBody(h, ch) {
 }
 
 function adjScore(h, p, d) {
+  if (!isScorekeeper) return;
   const par = COURSES[cIdx].par[h];
   if (scores[h][p] === null) { scores[h][p] = par; }
   else { scores[h][p] = Math.min(par * 2, Math.max(1, scores[h][p] + d)); }
@@ -721,11 +909,13 @@ function adjScore(h, p, d) {
 
   if (touched[h].every(t => t)) recomputeAll();
   saveSession();
+  syncToFirestore();
   renderHoles();
   renderMiniScorecard();
 }
 
 function setType(h, type) {
+  if (!isScorekeeper) return;
   holes[h].type    = type;
   holes[h].partner = null;
   if (type === '2v2') {
@@ -734,13 +924,16 @@ function setType(h, type) {
   }
   if (touched[h].every(t => t)) recomputeAll();
   saveSession();
+  syncToFirestore();
   renderHoles();
 }
 
 function setPartner(h, idx) {
+  if (!isScorekeeper) return;
   holes[h].partner = idx;
   if (touched[h].every(t => t)) recomputeAll();
   saveSession();
+  syncToFirestore();
   renderHoles();
 }
 

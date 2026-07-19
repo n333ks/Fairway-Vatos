@@ -63,10 +63,9 @@
         <div class="home-sec-icon">🏆</div>
         <div class="home-sec-label">Leaderboard</div>
       </button>
-      <button class="home-sec-btn" style="opacity:.4;pointer-events:none">
-        <div class="home-sec-icon">👥</div>
-        <div class="home-sec-label">Friends</div>
-        <div class="home-sec-soon">Soon</div>
+      <button class="home-sec-btn" onclick="openJoinModal()">
+        <div class="home-sec-icon">🤝</div>
+        <div class="home-sec-label">Join Round</div>
       </button>
     </div>
 
@@ -158,6 +157,10 @@
     </div>
     <div class="nav-end-row">
       <button class="end-round-btn" onclick="endRound()">End Round</button>
+      <button class="transfer-sk-btn" id="transfer-sk-btn" onclick="openTransferModal()" style="display:none">Transfer Control</button>
+    </div>
+    <div class="readonly-banner" id="readonly-banner" style="display:none">
+      👁 Watching · <span id="readonly-sk-name">scorekeeper</span> is keeping score
     </div>
   </div>
 
@@ -254,8 +257,49 @@
   <div class="content" id="leaderboard-body" style="padding-bottom:32px"></div>
 </div>
 
+<!-- ════════════════════════════════
+     OVERLAYS
+════════════════════════════════ -->
+
+<!-- Join code display (shown to scorekeeper after creating round) -->
+<div class="overlay" id="joincode-overlay" style="display:none">
+  <div class="overlay-card">
+    <div class="overlay-title">Round Created!</div>
+    <div class="overlay-sub">Share this code with your group</div>
+    <div class="join-code-display" id="joincode-display">---</div>
+    <div class="overlay-sub" style="margin-top:4px">Others tap Join Round and enter this code</div>
+    <button class="primary-btn" style="margin-top:20px" onclick="dismissJoincodeOverlay()">Start Playing</button>
+  </div>
+</div>
+
+<!-- Join round modal (entered by non-scorekeepers) -->
+<div class="overlay" id="join-modal" style="display:none">
+  <div class="overlay-card">
+    <div class="overlay-title">Join a Round</div>
+    <div class="overlay-sub">Enter the code from the scorekeeper's phone</div>
+    <input class="join-code-input" id="join-code-input" type="text"
+           placeholder="e.g. GHT-492" maxlength="7"
+           autocomplete="off" autocorrect="off" autocapitalize="characters"
+           oninput="formatJoinInput(this)">
+    <div class="login-error" id="join-error"></div>
+    <button class="primary-btn" id="join-submit-btn" onclick="joinRound()">Join Round</button>
+    <button class="login-toggle-btn" onclick="closeJoinModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- Transfer scorekeeper modal -->
+<div class="overlay" id="transfer-modal" style="display:none">
+  <div class="overlay-card">
+    <div class="overlay-title">Transfer Control</div>
+    <div class="overlay-sub">Choose who becomes the new scorekeeper</div>
+    <div id="transfer-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+    <button class="login-toggle-btn" style="margin-top:8px" onclick="closeTransferModal()">Cancel</button>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

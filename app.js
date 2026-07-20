@@ -1891,11 +1891,21 @@ function saveRound() {
   if (idx >= 0) hist[idx] = round; else hist.unshift(round);
   localStorage.setItem('hog_rounds', JSON.stringify(hist.slice(0, 100)));
 
-  // Firestore (persistent, cross-device)
+  // Firestore — write to every player's account so all see it in History
   if (currentUser) {
-    db.collection('users').doc(currentUser.uid)
-      .collection('rounds').doc(String(id))
-      .set(roundToFS(round));
+    const fsRound = roundToFS(round);
+    const docId   = String(id);
+    const written = new Set();
+    players.forEach(p => {
+      if (p.uid && !written.has(p.uid)) {
+        written.add(p.uid);
+        db.collection('users').doc(p.uid).collection('rounds').doc(docId).set(fsRound);
+      }
+    });
+    // Always ensure current user is included even if not in players list
+    if (!written.has(currentUser.uid)) {
+      db.collection('users').doc(currentUser.uid).collection('rounds').doc(docId).set(fsRound);
+    }
   }
 }
 

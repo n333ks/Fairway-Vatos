@@ -2505,6 +2505,7 @@ function renderHomeRecent() {
       document.getElementById('login-password').value = '';
       document.getElementById('login-error').textContent = '';
       show('sc-login');
+      setTimeout(() => document.activeElement?.blur(), 0);
     }
   });
 })();

@@ -1620,15 +1620,27 @@ function renderTotals() {
     if (payoutsTitle) payoutsTitle.style.display = 'none';
   } else {
     if (payoutsTitle) payoutsTitle.style.display = '';
-    moneyGrid.innerHTML = players.map((p, i) => {
-      const amt = money[i];
-      const cls = amt > 0 ? 'pos' : amt < 0 ? 'neg' : 'neu';
-      const disp = (amt >= 0 ? '+' : '−') + '$' + Math.abs(amt).toFixed(2);
-      return `<div class="money-card">
-        <div class="money-name">${pname(p)}</div>
-        <div class="money-amt ${cls}">${disp}</div>
-      </div>`;
-    }).join('');
+    if (gameType === 'scramble' && scrambleTeams[0].length && scrambleTeams[1].length) {
+      moneyGrid.innerHTML = [0, 1].map(t => {
+        const amt = scrambleTeams[t].reduce((s, i) => s + money[i], 0);
+        const cls = amt > 0 ? 'pos' : amt < 0 ? 'neg' : 'neu';
+        const disp = (amt >= 0 ? '+' : '−') + '$' + Math.abs(amt).toFixed(2);
+        return `<div class="money-card">
+          <div class="money-name">${scrambleTeamNames[t] || 'Team ' + (t === 0 ? 'A' : 'B')}</div>
+          <div class="money-amt ${cls}">${disp}</div>
+        </div>`;
+      }).join('');
+    } else {
+      moneyGrid.innerHTML = players.map((p, i) => {
+        const amt = money[i];
+        const cls = amt > 0 ? 'pos' : amt < 0 ? 'neg' : 'neu';
+        const disp = (amt >= 0 ? '+' : '−') + '$' + Math.abs(amt).toFixed(2);
+        return `<div class="money-card">
+          <div class="money-name">${pname(p)}</div>
+          <div class="money-amt ${cls}">${disp}</div>
+        </div>`;
+      }).join('');
+    }
     renderPayouts(players, money, 'payouts-list');
   }
 
@@ -2002,15 +2014,29 @@ function viewRound(id) {
 
   // Money cards
   let html = '<div class="money-grid">';
-  r.players.forEach((p, i) => {
-    const m   = money[i];
-    const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
-    const disp = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
-    html += `<div class="money-card">
-      <div class="money-name">${pname(p)}</div>
-      <div class="money-amt ${cls}">${disp}</div>
-    </div>`;
-  });
+  const rTeams = r.scrambleTeams;
+  if (r.gameType === 'scramble' && rTeams && rTeams[0] && rTeams[0].length) {
+    [0, 1].forEach(t => {
+      const amt = rTeams[t].reduce((s, i) => s + money[i], 0);
+      const cls = amt > 0 ? 'pos' : amt < 0 ? 'neg' : 'neu';
+      const disp = (amt >= 0 ? '+' : '−') + '$' + Math.abs(amt).toFixed(2);
+      const tName = (r.scrambleTeamNames || [])[t] || (t === 0 ? 'Team A' : 'Team B');
+      html += `<div class="money-card">
+        <div class="money-name">${tName}</div>
+        <div class="money-amt ${cls}">${disp}</div>
+      </div>`;
+    });
+  } else {
+    r.players.forEach((p, i) => {
+      const m   = money[i];
+      const cls = m > 0 ? 'pos' : m < 0 ? 'neg' : 'neu';
+      const disp = (m >= 0 ? '+' : '−') + '$' + Math.abs(m).toFixed(2);
+      html += `<div class="money-card">
+        <div class="money-name">${pname(p)}</div>
+        <div class="money-amt ${cls}">${disp}</div>
+      </div>`;
+    });
+  }
   html += '</div>';
 
   // Payouts

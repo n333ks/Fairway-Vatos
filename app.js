@@ -634,22 +634,25 @@ function calcMoneyWithPuttOff() {
   const base = calcMoney();
   if (!puttOff) return base;
   const result = [...base];
-  const { pot, winnerTeam, winnerIdx } = puttOff;
-  const puttPot = pot * 2; // double the carryover
+  const { pot, winnerTeam, winnerIdx, winTeamIdxs, loseTeamIdxs } = puttOff;
+  const puttPot = pot * 2;
 
-  if (gameType === 'scramble' && winnerTeam !== undefined) {
+  if (winTeamIdxs && loseTeamIdxs) {
+    // hog 2v2 putt-off: each loser pays stake*puttPot, winners split the pot equally
+    const totalPot = loseTeamIdxs.length * stake * puttPot;
+    loseTeamIdxs.forEach(i => { result[i] -= stake * puttPot; });
+    winTeamIdxs.forEach(i  => { result[i] += totalPot / winTeamIdxs.length; });
+  } else if (gameType === 'scramble' && winnerTeam !== undefined) {
     const winTeam  = scrambleTeams[winnerTeam];
     const loseTeam = scrambleTeams[winnerTeam === 0 ? 1 : 0];
     winTeam.forEach(i  => { result[i] += stake * puttPot; });
     loseTeam.forEach(i => { result[i] -= stake * puttPot; });
   } else if (winnerIdx !== undefined) {
     if (gameType === 'stroke') {
-      // skins: winner takes from all others equally
       const losers = players.map((_, i) => i).filter(i => i !== winnerIdx);
       result[winnerIdx] += stake * puttPot * losers.length;
       losers.forEach(i => { result[i] -= stake * puttPot; });
     } else {
-      // hog: winner vs all others like a hog hole
       const others = players.map((_, i) => i).filter(i => i !== winnerIdx);
       result[winnerIdx] += stake * puttPot * others.length;
       others.forEach(i => { result[i] -= stake * puttPot; });
@@ -671,15 +674,35 @@ function openPuttOff() {
   list.innerHTML = '';
 
   if (info.type === 'scramble') {
+    sub.textContent = `Carryover doubled — winning team takes $${puttAmt}/player`;
     [0, 1].forEach(t => {
       const name = scrambleTeamNames[t] || ('Team ' + (t === 0 ? 'A' : 'B'));
+      const members = scrambleTeams[t].map(i => shortName(players[i])).join(' + ');
       const btn = document.createElement('button');
       btn.className = 'puttoff-choice-btn';
-      btn.textContent = name;
+      btn.innerHTML = `${name}<br><span style="font-size:12px;font-weight:400;opacity:0.7">${members}</span>`;
       btn.onclick = () => { applyPuttOff({ pot: info.pot, winnerTeam: t }); overlay.style.display = 'none'; };
       list.appendChild(btn);
     });
+  } else if (info.type === 'hog' && info.tp === '2v2') {
+    const o = ord(info.fi !== undefined ? players.findIndex((_,i)=>i===info.fi) : 0);
+    const t1 = [info.fi, info.pi];
+    const t2 = players.map((_,i)=>i).filter(i => !t1.includes(i));
+    sub.textContent = `Carryover doubled — winning team splits $${(stake * info.pot * 2 * t2.length).toFixed(2)}`;
+    [t1, t2].forEach((team, ti) => {
+      const names = team.map(i => shortName(players[i])).join(' + ');
+      const btn = document.createElement('button');
+      btn.className = 'puttoff-choice-btn';
+      btn.textContent = names;
+      btn.onclick = () => {
+        const loser = ti === 0 ? t2 : t1;
+        applyPuttOff({ pot: info.pot, winTeamIdxs: team, loseTeamIdxs: loser });
+        overlay.style.display = 'none';
+      };
+      list.appendChild(btn);
+    });
   } else {
+    sub.textContent = `Carryover doubled — winner takes $${puttAmt}/player`;
     info.eligible.forEach(pi => {
       const btn = document.createElement('button');
       btn.className = 'puttoff-choice-btn';
@@ -1206,7 +1229,7 @@ function renderHolesBodyHog(h) {
       : needsPartner
         ? `<div class="next-hole-blocked">Choose teams above</div>`
         : isLastHole && hogCarryInfo && stake > 0
-          ? (puttOff ? `<div class="next-hole-proceed puttoff-done">⛳ Putt-off recorded</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
+          ? (puttOff ? `<div class="next-hole-proceed puttoff-done" onclick="openPuttOff()">⛳ Putt-off recorded — tap to change</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
           : isLastHole ? ''
           : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
   document.getElementById('holes-body').innerHTML = `
@@ -1236,7 +1259,7 @@ function renderHolesBodyScramble(h) {
   const blocked = !ready
     ? `<div class="next-hole-blocked">Enter both team scores to continue</div>`
     : h === lastHole() && scramCarryInfo && stake > 0
-      ? (puttOff ? `<div class="next-hole-proceed puttoff-done">⛳ Putt-off recorded</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
+      ? (puttOff ? `<div class="next-hole-proceed puttoff-done" onclick="openPuttOff()">⛳ Putt-off recorded — tap to change</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
       : h === lastHole() ? ''
       : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
   document.getElementById('holes-body').innerHTML = `
@@ -1271,7 +1294,7 @@ function renderHolesBodyStroke(h) {
   const blocked = !ready
     ? `<div class="next-hole-blocked">Enter all scores to continue</div>`
     : h === lastHole() && skinsCarryInfo && stake > 0
-      ? (puttOff ? `<div class="next-hole-proceed puttoff-done">⛳ Putt-off recorded</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
+      ? (puttOff ? `<div class="next-hole-proceed puttoff-done" onclick="openPuttOff()">⛳ Putt-off recorded — tap to change</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
       : h === lastHole() ? ''
       : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
   document.getElementById('holes-body').innerHTML = `

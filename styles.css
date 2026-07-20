@@ -412,7 +412,7 @@ body {
 }
 .next-hole-proceed:active { opacity:.85 }
 .next-hole-proceed.puttoff-btn { background:var(--green); box-shadow:0 4px 12px rgba(52,199,89,0.3); }
-.next-hole-proceed.puttoff-done { background:var(--bg3); color:var(--tx2); box-shadow:none; cursor:default; font-size:14px; }
+.next-hole-proceed.puttoff-done { background:var(--bg3); color:var(--tx2); box-shadow:none; cursor:pointer; font-size:13px; }
 .puttoff-choice-btn {
   width:100%; padding:14px; border:none; border-radius:var(--r);
   background:var(--bg3); color:var(--tx); font-size:16px; font-weight:600;

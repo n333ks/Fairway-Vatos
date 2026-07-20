@@ -864,18 +864,18 @@ function renderPickerUI() {
     }
   }
 
+  const pickColors = ['blue','green','orange','purple'];
   const cards = knownUsers.map(u => {
     const idx = selectedPlayers.findIndex(p => p.uid === u.uid);
     const sel = idx >= 0;
     const teamCls = sel && gameType === 'scramble'
-      ? (scrambleTeamAssign[idx] === 0 ? ' team-a-pick' : ' team-b-pick') : '';
+      ? (scrambleTeamAssign[idx] === 0 ? ' team-a-pick' : ' team-b-pick')
+      : sel ? ` pick-color-${pickColors[idx % pickColors.length]}` : '';
     return `<button class="player-pick-btn${sel ? ' sel' : ''}${teamCls}" onclick="togglePlayer('${u.uid}')">
-      ${sel ? `<span class="player-pick-num">${idx + 1}</span>` : ''}
       <span class="player-pick-name">${u.name}</span>
     </button>`;
   }).join('');
 
-  // Scramble: show team name inputs + rosters inline
   let extra = '';
   if (gameType === 'scramble') {
     const t1pills = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 0).map(p => `<span class="sti-pill sti-pill-a">${p.name}</span>`).join('');
@@ -890,9 +890,6 @@ function renderPickerUI() {
         <div class="sti-roster">${t2pills || '<span class="sti-empty">—</span>'}</div>
       </div>
     </div>`;
-  } else if (selectedPlayers.length) {
-    const pillColors = ['blue','green','orange','purple'];
-    extra = `<div class="player-pick-order">${selectedPlayers.map((p,i) => `<span class="pick-slot pick-slot-${pillColors[i % pillColors.length]}">${p.name}</span>`).join('')}</div>`;
   }
 
   el.innerHTML = `<div class="player-pick-grid">${cards}</div>${extra}`;

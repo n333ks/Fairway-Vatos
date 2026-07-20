@@ -2349,7 +2349,7 @@ function showLeaderboard() {
 
   const sorted = Object.entries(stats).sort((a, b) => b[1].money - a[1].money);
 
-  const medals = ['🥇', '🥈', '🥉'];
+  const medals = ['🥇', '🥈', '🥉', '💩'];
 
   const rows = sorted.map(([key, s], idx) => {
     const name = s.name;

@@ -716,7 +716,7 @@ function renderCourses() {
 }
 
 function selectCourse(i) {
-  cIdx = i; tIdx = 2; teePage = 0;
+  cIdx = i; tIdx = -1; teePage = 0;
   holeCount = 18; nineChoice = 'front';
   document.getElementById('setup-title').textContent = COURSES[i].name;
   document.getElementById('setup-sub').textContent   = COURSES[i].sub;
@@ -987,6 +987,7 @@ function selNineChoice(c) {
 }
 
 async function startRound() {
+  if (tIdx < 0) { alert('Please select a tee box.'); return; }
   if (gameType === 'scramble') {
     if (selectedPlayers.length !== 4) { alert('Scramble requires exactly 4 players.'); return; }
     const tA = selectedPlayers.map((_, i) => i).filter(i => scrambleTeamAssign[i] === 0);

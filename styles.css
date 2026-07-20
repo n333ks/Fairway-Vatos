@@ -613,9 +613,13 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   border-bottom: 0.5px solid rgba(84,84,88,0.4);
 }
 .hero-logo {
-  width: 80%;
+  width: 72%;
   height: auto;
   object-fit: contain;
+  mix-blend-mode: multiply;
+}
+@media (prefers-color-scheme: dark) {
+  .hero-logo { mix-blend-mode: normal; filter: invert(1) hue-rotate(180deg); }
 }
 
 /* ── overlays ── */
@@ -757,16 +761,15 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 /* ── home screen ── */
 .home-safe-top {
   height: calc(var(--st) + 16px);
-  background: #fff;
+  background: var(--bg);
   flex-shrink: 0;
 }
 .home-hero {
-  background: #fff;
+  background: var(--bg);
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px 32px 16px;
-  border-bottom: 0.5px solid var(--sep2);
+  padding: 4px 40px 0;
   flex-shrink: 0;
 }
 .home-body {

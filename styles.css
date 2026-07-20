@@ -444,11 +444,12 @@ table.sct .sep           { background:var(--bg4) !important; font-weight:600 }
 table.sct .sep.stk       { background:var(--bg4) !important }
 table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 
-.ca { background:rgba(255,214,10,0.18); color:var(--yellow); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px }
-.ce { background:rgba(175,82,222,0.15);  color:var(--purple); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px }
-.cu { background:var(--green-bg); color:var(--green); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px }
-.co { background:var(--red-bg);   color:var(--red);   border-radius:3px; padding:1px 3px }
-.cn { display:inline-block }
+.ca, .ce, .cu { border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; margin:0 auto; }
+.ca { background:rgba(255,214,10,0.18); color:var(--yellow); }
+.ce { background:rgba(175,82,222,0.15); color:var(--purple); }
+.cu { background:var(--green-bg);       color:var(--green);  }
+.co { background:var(--red-bg); color:var(--red); border-radius:3px; padding:1px 3px; display:inline-block; }
+.cn { display:inline-block; }
 /* hole result highlights — applied to the score span, not the cell */
 .hl-win  { outline: 2px solid var(--green); border-radius:3px }
 .hl-lose { outline: 2px solid var(--red);   border-radius:3px }

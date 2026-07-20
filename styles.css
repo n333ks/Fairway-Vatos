@@ -1001,6 +1001,17 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   border-bottom: 0.5px solid var(--sep2);
 }
 .payout-row:last-child { border-bottom: none; }
+
+/* ── history score editor ── */
+.hist-edit-hole { border-bottom: 0.5px solid var(--sep2); padding: 10px 16px; }
+.hist-edit-hole:last-of-type { border-bottom: none; }
+.hist-edit-hole-hdr { display:flex; justify-content:space-between; margin-bottom:8px; }
+.hist-edit-hnum { font-size:13px; font-weight:600; color:var(--tx); }
+.hist-edit-par  { font-size:13px; color:var(--tx2); }
+.hist-edit-row  { display:flex; align-items:center; justify-content:space-between; padding:4px 0; }
+.hist-edit-name { font-size:14px; color:var(--tx); flex:1; }
+.hist-edit-ctrl { display:flex; align-items:center; gap:12px; }
+.hist-edit-val  { font-size:17px; font-weight:700; min-width:24px; text-align:center; font-variant-numeric:tabular-nums; }
 .payout-from { font-size: 15px; font-weight: 600; color: var(--red); flex: 1; }
 .payout-arrow { font-size: 14px; color: var(--tx3); }
 .payout-to   { font-size: 15px; font-weight: 600; color: var(--green); flex: 1; }

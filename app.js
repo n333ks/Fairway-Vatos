@@ -365,6 +365,9 @@ let scrambleTeams     = [[], []]; // [[playerIdx,playerIdx],[playerIdx,playerIdx
 let scrambleTeamAssign = [0, 0, 1, 1]; // team (0/1) for each position in selectedPlayers
 let scrambleTeamNames  = ['', ''];
 let puttOff = null; // {winnerTeam: 0|1} for scramble, {winnerIdx: N} for hog/skins, {pot: N}
+let currentDetailId  = null; // round id currently shown in history detail
+let currentDetailBack = 'sc-history'; // backTo param for re-renders
+let histEditMode = false; // true while editing a history round
 
 // Compat helper: players can be {name,uid} objects (new) or strings (old history)
 function pname(p) { return typeof p === 'string' ? p : (p && p.name) || 'Player'; }
@@ -2200,11 +2203,79 @@ async function showHistory() {
   }
 }
 
+function recalcHistRound(r) {
+  // Swap globals to this round, recompute hole results + money, restore
+  const _cIdx=cIdx,_tIdx=tIdx,_players=players,_scores=scores,_holes=holes,
+        _gameType=gameType,_scrambleTeams=scrambleTeams,_scrambleTeamNames=scrambleTeamNames,
+        _holeCount=holeCount,_nineChoice=nineChoice,_stake=stake,_puttOff=puttOff;
+  cIdx = COURSES.findIndex(x => x.name === r.courseName); if (cIdx < 0) cIdx = 0;
+  tIdx = COURSES[cIdx].tees.findIndex(t => t.n === r.tee); if (tIdx < 0) tIdx = 0;
+  players = r.players;
+  scores  = r.scores.map(h => [...h]);
+  holes   = r.holes.map(h => ({...h}));
+  gameType = r.gameType || 'hog';
+  scrambleTeams = r.scrambleTeams || [[], []];
+  scrambleTeamNames = r.scrambleTeamNames || ['', ''];
+  holeCount = r.holeCount || 18;
+  nineChoice = r.nineChoice || 'front';
+  stake = r.stake || 0;
+  puttOff = r.puttOff || null;
+  recomputeAll();
+  r.holes  = holes.map(h => ({...h}));
+  r.money  = calcMoneyWithPuttOff();
+  cIdx=_cIdx; tIdx=_tIdx; players=_players; scores=_scores; holes=_holes;
+  gameType=_gameType; scrambleTeams=_scrambleTeams; scrambleTeamNames=_scrambleTeamNames;
+  holeCount=_holeCount; nineChoice=_nineChoice; stake=_stake; puttOff=_puttOff;
+  // Persist
+  const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
+  const idx  = hist.findIndex(h => h.id === r.id);
+  if (idx >= 0) hist[idx] = r; else hist.unshift(r);
+  localStorage.setItem('hog_rounds', JSON.stringify(hist.slice(0, 100)));
+  if (currentUser) {
+    const fsRound = roundToFS(r);
+    const docId = String(r.id);
+    const written = new Set();
+    r.players.forEach(p => {
+      if (p && p.uid && !written.has(p.uid)) {
+        written.add(p.uid);
+        db.collection('users').doc(p.uid).collection('rounds').doc(docId).set(fsRound).catch(()=>{});
+      }
+    });
+    if (!written.has(currentUser.uid)) {
+      db.collection('users').doc(currentUser.uid).collection('rounds').doc(docId).set(fsRound).catch(()=>{});
+    }
+  }
+}
+
+function adjHistScore(h, pi, delta) {
+  const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
+  const r = hist.find(r => r.id === currentDetailId);
+  if (!r) return;
+  const cur = r.scores[h][pi];
+  if (cur === null || cur === undefined) return;
+  const next = Math.max(1, cur + delta);
+  r.scores[h][pi] = next;
+  recalcHistRound(r);
+  viewRound(currentDetailId, currentDetailBack);
+}
+
+function toggleHistEdit() {
+  histEditMode = !histEditMode;
+  viewRound(currentDetailId, currentDetailBack);
+}
+
 function viewRound(id, backTo = 'sc-history') {
+  currentDetailId   = id;
+  currentDetailBack = backTo;
   const btn = document.getElementById('detail-back-btn');
   if (btn) {
     btn.textContent = backTo === 'sc-home' ? '← Home' : '← History';
-    btn.onclick = () => show(backTo);
+    btn.onclick = () => { histEditMode = false; show(backTo); };
+  }
+  const editBtn = document.getElementById('detail-edit-btn');
+  if (editBtn) {
+    editBtn.textContent = histEditMode ? 'Done' : 'Edit';
+    editBtn.style.display = '';
   }
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
   const r    = hist.find(r => r.id === id);
@@ -2304,6 +2375,53 @@ function viewRound(id, backTo = 'sc-history') {
   currentHole = _currentHole; scorecardPage = _scPage;
   gameType = _gameType; scrambleTeams = _scrambleTeams; scrambleTeamNames = _scrambleTeamNames;
   holeCount = _holeCount; nineChoice = _nineChoice;
+
+  // Edit scores section
+  if (histEditMode) {
+    const rAH = r.holeCount === 9
+      ? (r.nineChoice === 'back' ? [9,10,11,12,13,14,15,16,17] : [0,1,2,3,4,5,6,7,8])
+      : Array.from({length:18},(_,i)=>i);
+    const rPar = (COURSES.find(c=>c.name===r.courseName)||COURSES[0]).par;
+    const isScrambleEdit = r.gameType === 'scramble' && r.scrambleTeams && r.scrambleTeams[0] && r.scrambleTeams[0].length;
+    html += `<div class="totals-section-title">Edit Scores</div>`;
+    rAH.forEach(h => {
+      html += `<div class="hist-edit-hole">
+        <div class="hist-edit-hole-hdr">
+          <span class="hist-edit-hnum">Hole ${h+1}</span>
+          <span class="hist-edit-par">Par ${rPar[h]}</span>
+        </div>`;
+      if (isScrambleEdit) {
+        [0,1].forEach(t => {
+          const cap = r.scrambleTeams[t][0];
+          const sc  = r.scores[h][cap];
+          const tName = (r.scrambleTeamNames||[])[t] || ('Team '+(t===0?'A':'B'));
+          if (sc === null || sc === undefined) return;
+          html += `<div class="hist-edit-row">
+            <span class="hist-edit-name">${tName}</span>
+            <div class="hist-edit-ctrl">
+              <button class="sc-btn" onclick="adjHistScore(${h},${cap},-1)">−</button>
+              <span class="hist-edit-val">${sc}</span>
+              <button class="sc-btn" onclick="adjHistScore(${h},${cap},1)">+</button>
+            </div>
+          </div>`;
+        });
+      } else {
+        r.players.forEach((p, pi) => {
+          const sc = r.scores[h][pi];
+          if (sc === null || sc === undefined) return;
+          html += `<div class="hist-edit-row">
+            <span class="hist-edit-name">${shortName(p)}</span>
+            <div class="hist-edit-ctrl">
+              <button class="sc-btn" onclick="adjHistScore(${h},${pi},-1)">−</button>
+              <span class="hist-edit-val">${sc}</span>
+              <button class="sc-btn" onclick="adjHistScore(${h},${pi},1)">+</button>
+            </div>
+          </div>`;
+        });
+      }
+      html += `</div>`;
+    });
+  }
 
   html += `<div class="totals-section-title">Scorecard</div>${scHtml}`;
 

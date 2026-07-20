@@ -1181,9 +1181,9 @@ function setSCPage(p) {
   document.querySelectorAll('.mini-sc-dot').forEach((d, i) => d.classList.toggle('on', i === p));
 }
 
-function buildScorecardHalfScramble(startH, endH, halfLabel, colLabel) {
+function buildScorecardHalfScramble(startH, endH, halfLabel, colLabel, solo = false) {
   const c = COURSES[cIdx], par = c.par;
-  const isBack = startH === 9;
+  const isBack = !solo && startH === 9;
   const halfPar  = par.slice(startH, endH).reduce((a,b) => a+b, 0);
   const grandPar = par.reduce((a,b) => a+b, 0);
   let thead = `<thead><tr><th class="stk">Hole</th>`;
@@ -1225,13 +1225,13 @@ function buildScorecardHalfScramble(startH, endH, halfLabel, colLabel) {
   </div>`;
 }
 
-function buildScorecardHalf(startH, endH, halfLabel, colLabel) {
+function buildScorecardHalf(startH, endH, halfLabel, colLabel, solo = false) {
   if (gameType === 'scramble' && scrambleTeams[0].length && scrambleTeams[1].length) {
-    return buildScorecardHalfScramble(startH, endH, halfLabel, colLabel);
+    return buildScorecardHalfScramble(startH, endH, halfLabel, colLabel, solo);
   }
   const c      = COURSES[cIdx];
   const par    = c.par;
-  const isBack = startH === 9;
+  const isBack = !solo && startH === 9;
   const halfPar  = par.slice(startH, endH).reduce((a, b) => a + b, 0);
   const grandPar = par.reduce((a, b) => a + b, 0);
 
@@ -1644,16 +1644,17 @@ function renderTotals() {
     renderPayouts(players, money, 'payouts-list');
   }
 
-  function buildTotalsHalf(startH, endH, halfLabel, colLabel) {
-    return buildScorecardHalf(startH, endH, halfLabel, colLabel);
+  function buildTotalsHalf(startH, endH, halfLabel, colLabel, solo = false) {
+    return buildScorecardHalf(startH, endH, halfLabel, colLabel, solo);
   }
 
   const scPage = scorecardPage;
   if (holeCount === 9) {
-    const startH = nineChoice === 'back' ? 9 : 0;
-    const endH   = nineChoice === 'back' ? 18 : 9;
-    const label  = nineChoice === 'back' ? 'Back Nine' : 'Front Nine';
-    document.getElementById('sc-table').innerHTML = `<div class="totals-sc-solo">${buildTotalsHalf(startH, endH, label, 'Total')}</div>`;
+    const startH  = nineChoice === 'back' ? 9 : 0;
+    const endH    = nineChoice === 'back' ? 18 : 9;
+    const label   = nineChoice === 'back' ? 'Back Nine' : 'Front Nine';
+    const colLbl  = nineChoice === 'back' ? 'In' : 'Out';
+    document.getElementById('sc-table').innerHTML = `<div class="totals-sc-solo">${buildTotalsHalf(startH, endH, label, colLbl, true)}</div>`;
   } else {
     const offset = scPage === 0 ? '0%' : '-50%';
     document.getElementById('sc-table').innerHTML = `
@@ -2078,7 +2079,8 @@ function viewRound(id) {
     const startH = nineChoice === 'back' ? 9 : 0;
     const endH   = nineChoice === 'back' ? 18 : 9;
     const label  = nineChoice === 'back' ? 'Back Nine' : 'Front Nine';
-    scHtml = `<div class="totals-sc-solo">${buildScorecardHalf(startH, endH, label, 'Total')}</div>`;
+    const colLbl = nineChoice === 'back' ? 'In' : 'Out';
+    scHtml = `<div class="totals-sc-solo">${buildScorecardHalf(startH, endH, label, colLbl, true)}</div>`;
   } else {
     const scFront = buildScorecardHalf(0, 9, 'Front Nine', 'Out');
     const scBack  = buildScorecardHalf(9, 18, 'Back Nine', 'In');

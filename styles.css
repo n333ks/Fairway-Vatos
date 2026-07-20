@@ -444,11 +444,11 @@ table.sct .sep           { background:var(--bg4) !important; font-weight:600 }
 table.sct .sep.stk       { background:var(--bg4) !important }
 table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 
-.ca, .ce, .cu { border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; margin:0 auto; }
+.ca, .ce, .cu { border-radius:50%; width:1.6em; height:1.6em; line-height:1.6em; display:inline-block; text-align:center; }
 .ca { background:rgba(255,214,10,0.18); color:var(--yellow); }
 .ce { background:rgba(175,82,222,0.15); color:var(--purple); }
 .cu { background:var(--green-bg);       color:var(--green);  }
-.co { background:var(--red-bg); color:var(--red); border-radius:3px; padding:1px 3px; display:inline-block; }
+.co { background:var(--red-bg); color:var(--red); border-radius:3px; padding:0 2px; display:inline-block; }
 .cn { display:inline-block; }
 /* hole result highlights — applied to the score span, not the cell */
 .hl-win  { outline: 2px solid var(--green); border-radius:3px }

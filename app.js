@@ -634,7 +634,8 @@ function renderCourses() {
 function selectCourse(i) {
   cIdx = i; tIdx = 2;
   holeCount = 18; nineChoice = 'front';
-  document.getElementById('setup-sub').textContent = COURSES[i].name + ' · ' + COURSES[i].sub;
+  document.getElementById('setup-title').textContent = COURSES[i].name;
+  document.getElementById('setup-sub').textContent = COURSES[i].sub;
   renderTeeScroll();
   renderPlayerInputs();
   // Init hole count buttons

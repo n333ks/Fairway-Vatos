@@ -364,6 +364,7 @@ let gameType   = 'hog';   // 'hog' | 'scramble' | 'stroke'
 let scrambleTeams     = [[], []]; // [[playerIdx,playerIdx],[playerIdx,playerIdx]] during round
 let scrambleTeamAssign = [0, 0, 1, 1]; // team (0/1) for each position in selectedPlayers
 let scrambleTeamNames  = ['', ''];
+let puttOff = null; // {winnerTeam: 0|1} for scramble, {winnerIdx: N} for hog/skins, {pot: N}
 
 // Compat helper: players can be {name,uid} objects (new) or strings (old history)
 function pname(p) { return typeof p === 'string' ? p : (p && p.name) || 'Player'; }
@@ -585,6 +586,121 @@ function calcMoney() {
   return tot;
 }
 
+// Returns the carryover pot on the last hole (0 if no carryover), and who is eligible
+function lastHoleCarryInfo() {
+  if (stake === 0) return null;
+  const lh = lastHole();
+  if (!holeAllTouched(lh)) return null;
+
+  if (gameType === 'scramble') {
+    const chains = buildScrambleChains();
+    const ch = chains[lh];
+    if (holes[lh].result !== 'tie') return null;
+    // pot is ch.n (carries accumulated including this hole)
+    return { pot: ch.n, eligible: [0, 1], type: 'scramble' };
+  }
+  if (gameType === 'stroke') {
+    const results = buildSkinsResults();
+    const last = results.find(r => r.h === lh);
+    if (!last || !last.tied) return null;
+    // find all players who tied on the last hole
+    const sc = players.map((_, p) => scores[lh][p]);
+    const min = Math.min(...sc);
+    const tiedPlayers = players.map((_, p) => p).filter(p => sc[p] === min);
+    return { pot: last.n, eligible: tiedPlayers, type: 'skins' };
+  }
+  if (gameType === 'hog') {
+    const cs = buildChains();
+    const ch = cs[lh];
+    if (holes[lh].result !== 'tie') return null;
+    // eligible: all players involved in the bet
+    const o = ord(ch.betHole);
+    const fi = ch.carry ? ch.f : o[0];
+    const tp = ch.carry ? ch.t : holes[lh].type;
+    const pi = ch.carry ? ch.p : (holes[lh].partner !== null ? holes[lh].partner : o[1]);
+    let eligible;
+    if (tp === 'hog') {
+      eligible = players.map((_, i) => i); // hog vs rest
+    } else {
+      const t1 = [fi, pi], t2 = o.filter(i => !t1.includes(i));
+      eligible = [...t1, ...t2];
+    }
+    return { pot: ch.n, eligible, type: 'hog', fi, pi, tp };
+  }
+  return null;
+}
+
+function calcMoneyWithPuttOff() {
+  const base = calcMoney();
+  if (!puttOff) return base;
+  const result = [...base];
+  const { pot, winnerTeam, winnerIdx } = puttOff;
+  const puttPot = pot * 2; // double the carryover
+
+  if (gameType === 'scramble' && winnerTeam !== undefined) {
+    const winTeam  = scrambleTeams[winnerTeam];
+    const loseTeam = scrambleTeams[winnerTeam === 0 ? 1 : 0];
+    winTeam.forEach(i  => { result[i] += stake * puttPot; });
+    loseTeam.forEach(i => { result[i] -= stake * puttPot; });
+  } else if (winnerIdx !== undefined) {
+    if (gameType === 'stroke') {
+      // skins: winner takes from all others equally
+      const losers = players.map((_, i) => i).filter(i => i !== winnerIdx);
+      result[winnerIdx] += stake * puttPot * losers.length;
+      losers.forEach(i => { result[i] -= stake * puttPot; });
+    } else {
+      // hog: winner vs all others like a hog hole
+      const others = players.map((_, i) => i).filter(i => i !== winnerIdx);
+      result[winnerIdx] += stake * puttPot * others.length;
+      others.forEach(i => { result[i] -= stake * puttPot; });
+    }
+  }
+  return result;
+}
+
+function openPuttOff() {
+  const info = lastHoleCarryInfo();
+  if (!info) return;
+  const overlay = document.getElementById('puttoff-overlay');
+  const title   = document.getElementById('puttoff-title');
+  const sub     = document.getElementById('puttoff-sub');
+  const list    = document.getElementById('puttoff-list');
+  const puttAmt = (stake * info.pot * 2).toFixed(2);
+  title.textContent = 'Putt-Off';
+  sub.textContent   = `Carryover doubled — winner takes $${puttAmt}/player`;
+  list.innerHTML = '';
+
+  if (info.type === 'scramble') {
+    [0, 1].forEach(t => {
+      const name = scrambleTeamNames[t] || ('Team ' + (t === 0 ? 'A' : 'B'));
+      const btn = document.createElement('button');
+      btn.className = 'puttoff-choice-btn';
+      btn.textContent = name;
+      btn.onclick = () => { applyPuttOff({ pot: info.pot, winnerTeam: t }); overlay.style.display = 'none'; };
+      list.appendChild(btn);
+    });
+  } else {
+    info.eligible.forEach(pi => {
+      const btn = document.createElement('button');
+      btn.className = 'puttoff-choice-btn';
+      btn.textContent = pname(players[pi]);
+      btn.onclick = () => { applyPuttOff({ pot: info.pot, winnerIdx: pi }); overlay.style.display = 'none'; };
+      list.appendChild(btn);
+    });
+  }
+  overlay.style.display = 'flex';
+}
+
+function applyPuttOff(data) {
+  puttOff = data;
+  saveSession();
+  recomputeTotals();
+}
+
+function cancelPuttOff() {
+  document.getElementById('puttoff-overlay').style.display = 'none';
+}
+
 /* ════════════════════════════════
    NAVIGATION
 ════════════════════════════════ */
@@ -626,7 +742,7 @@ function submitScores() {
   joinCode = null; isScorekeeper = false; participants = {};
   clearSession();
   players = []; scores = []; holes = []; touched = [];
-  currentHole = 0; currentRoundId = null;
+  currentHole = 0; currentRoundId = null; puttOff = null;
   renderHomeRecent();
   // Navigate to history and open the round summary
   showHistory().then(() => {
@@ -644,7 +760,7 @@ function endRound() {
   clearSession();
   players = [];
   scores = []; holes = []; touched = [];
-  currentHole = 0; currentRoundId = null;
+  currentHole = 0; currentRoundId = null; puttOff = null;
   renderHomeRecent();
   show('sc-home');
 }
@@ -948,7 +1064,7 @@ function saveSession() {
   if (!players.length) return;
   localStorage.setItem('hog_session', JSON.stringify({
     cIdx, tIdx, players, stake, scores, holes, touched, currentHole, currentRoundId,
-    holeCount, nineChoice, gameType, scrambleTeams, scrambleTeamNames
+    holeCount, nineChoice, gameType, scrambleTeams, scrambleTeamNames, puttOff
   }));
 }
 
@@ -969,6 +1085,7 @@ function continueRound() {
   holeCount = s.holeCount || 18; nineChoice = s.nineChoice || 'front';
   gameType = s.gameType || 'hog'; scrambleTeams = s.scrambleTeams || [[], []];
   scrambleTeamNames = s.scrambleTeamNames || ['', ''];
+  puttOff = s.puttOff || null;
   isScorekeeper = true; // local session = always scorekeeper
   showTab('holes');
   renderHoles();
@@ -1010,6 +1127,7 @@ async function startRound() {
   currentHole    = firstHole();
   scorecardPage  = nineChoice === 'back' ? 1 : 0;
   currentRoundId = null;
+  puttOff = null;
   isScorekeeper  = true;
   clearSession();
 
@@ -1080,14 +1198,17 @@ function renderHolesBodyHog(h) {
   const isLastHole    = h === lastHole();
   const effectiveType = ch.carry ? ch.t : holes[h].type;
   const needsPartner  = !ch.carry && effectiveType === '2v2' && holes[h].partner === null;
+  const hogCarryInfo = isLastHole && allTouched && effectiveType && !needsPartner ? lastHoleCarryInfo() : null;
   const blocked = !allTouched
     ? `<div class="next-hole-blocked">Enter all scores to continue</div>`
     : !effectiveType
       ? `<div class="next-hole-blocked">Choose a game type above</div>`
       : needsPartner
         ? `<div class="next-hole-blocked">Choose teams above</div>`
-        : isLastHole ? ''
-        : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
+        : isLastHole && hogCarryInfo && stake > 0
+          ? (puttOff ? `<div class="next-hole-proceed puttoff-done">⛳ Putt-off recorded</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
+          : isLastHole ? ''
+          : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
   document.getElementById('holes-body').innerHTML = `
     <div class="hole-card${ch.carry?' carry':''}" id="hole-${h}">
       <div class="hole-card-hdr">
@@ -1111,10 +1232,13 @@ function renderHolesBodyScramble(h) {
   const tA = scrambleTeamNames[0] || 'Team A', tB = scrambleTeamNames[1] || 'Team B';
   const ready = touched[h][a0] && touched[h][b0];
   const stakeTag = ch.n > 1 ? `<span class="carry-tag">$${(stake*ch.n).toFixed(2)}/team</span>` : '';
+  const scramCarryInfo = h === lastHole() && ready ? lastHoleCarryInfo() : null;
   const blocked = !ready
     ? `<div class="next-hole-blocked">Enter both team scores to continue</div>`
-    : h === lastHole() ? ''
-    : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
+    : h === lastHole() && scramCarryInfo && stake > 0
+      ? (puttOff ? `<div class="next-hole-proceed puttoff-done">⛳ Putt-off recorded</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
+      : h === lastHole() ? ''
+      : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
   document.getElementById('holes-body').innerHTML = `
     <div class="hole-card${ch.carry?' carry':''}" id="hole-${h}">
       <div class="hole-card-hdr">
@@ -1143,10 +1267,13 @@ function renderHolesBodyStroke(h) {
   }
   const ready = touched[h].every(t => t);
   const stakeTag = pot > 1 ? `<span class="carry-tag">$${(stake*pot).toFixed(2)}/skin</span>` : '';
+  const skinsCarryInfo = h === lastHole() && ready ? lastHoleCarryInfo() : null;
   const blocked = !ready
     ? `<div class="next-hole-blocked">Enter all scores to continue</div>`
-    : h === lastHole() ? ''
-    : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
+    : h === lastHole() && skinsCarryInfo && stake > 0
+      ? (puttOff ? `<div class="next-hole-proceed puttoff-done">⛳ Putt-off recorded</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
+      : h === lastHole() ? ''
+      : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
   document.getElementById('holes-body').innerHTML = `
     <div class="hole-card${pot>1?' carry':''}" id="hole-${h}">
       <div class="hole-card-hdr">
@@ -1609,10 +1736,15 @@ function setPartner(h, idx) {
 /* ════════════════════════════════
    SCREEN 3 — TOTALS TAB
 ════════════════════════════════ */
+function recomputeTotals() {
+  if (document.getElementById('tab-totals-wrap')?.style.display !== 'none') renderTotals();
+  else renderHoles();
+}
+
 function renderTotals() {
   updateSubmitBtn();
   saveRound();
-  const money = calcMoney();
+  const money = calcMoneyWithPuttOff();
   const c     = COURSES[cIdx];
   const cs    = buildChains();
   const par   = c.par;
@@ -1793,6 +1925,31 @@ function renderTotals() {
     }
   }
 
+  // Prepend putt-off result row
+  if (puttOff && gameType !== 'card') {
+    const puttAmt = (stake * puttOff.pot * 2).toFixed(2);
+    let puttWinner;
+    if (gameType === 'scramble' && puttOff.winnerTeam !== undefined) {
+      puttWinner = scrambleTeamNames[puttOff.winnerTeam] || ('Team ' + (puttOff.winnerTeam === 0 ? 'A' : 'B'));
+    } else if (puttOff.winnerIdx !== undefined) {
+      puttWinner = pname(players[puttOff.winnerIdx]);
+    }
+    const myWon = myIdx >= 0 && (
+      (gameType === 'scramble' && puttOff.winnerTeam !== undefined && scrambleTeams[puttOff.winnerTeam].includes(myIdx)) ||
+      (puttOff.winnerIdx !== undefined && puttOff.winnerIdx === myIdx)
+    );
+    const myLost = myIdx >= 0 && !myWon;
+    const puttMoneyStr = myWon
+      ? `+$${(stake * puttOff.pot * 2 * (gameType==='scramble'?scrambleTeams[puttOff.winnerTeam===0?1:0].length:players.length-1)).toFixed(2)}`
+      : myLost ? `−$${puttAmt}` : `$${puttAmt}`;
+    hr = `<div class="hr-row hr-row--puttoff">
+      <span class="hr-num">⛳ Putt-Off</span>
+      <span class="hr-teams">🏆 ${puttWinner}</span>
+      <span class="hr-badge win">Win</span>
+      <span class="hr-money ${myWon?'pos':myLost?'neg':''}">${puttMoneyStr}</span>
+    </div>` + hr;
+  }
+
   const hrTitle = document.getElementById('hole-results-title');
   if (gameType === 'card') {
     if (hrTitle) hrTitle.style.display = 'none';
@@ -1884,7 +2041,7 @@ function saveRound() {
   const completedHoles = ah.filter(h => holeAllTouched(h)).length;
   if (completedHoles < 9) return;
 
-  const money = calcMoney();
+  const money = calcMoneyWithPuttOff();
   const id    = currentRoundId || Date.now();
   currentRoundId = id;
   const t = COURSES[cIdx].tees[tIdx];
@@ -1922,7 +2079,8 @@ function saveRound() {
     scores:     scores.map(h => [...h]),
     holes:      holes.map(h => ({...h})),
     money:      [...money],
-    scoreDiffs
+    scoreDiffs,
+    puttOff:    puttOff || null
   };
   // localStorage cache (fast offline access)
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
@@ -2218,6 +2376,33 @@ function viewRound(id, backTo = 'sc-history') {
     }
   }
   if (!anyResult) hrHtml = `<div class="hr-row"><span style="color:var(--tx2);font-size:14px">No holes recorded</span></div>`;
+
+  // Prepend putt-off result if present
+  if (r.puttOff && r.gameType !== 'card') {
+    const rpo = r.puttOff;
+    const rStake = r.stake || 0;
+    const puttAmt = (rStake * rpo.pot * 2).toFixed(2);
+    let puttWinner;
+    if (r.gameType === 'scramble' && rpo.winnerTeam !== undefined) {
+      puttWinner = (r.scrambleTeamNames || [])[rpo.winnerTeam] || ('Team ' + (rpo.winnerTeam === 0 ? 'A' : 'B'));
+    } else if (rpo.winnerIdx !== undefined) {
+      puttWinner = pname(r.players[rpo.winnerIdx]);
+    }
+    const rMyWon = myIdxR >= 0 && (
+      (r.gameType === 'scramble' && rpo.winnerTeam !== undefined && (r.scrambleTeams||[[],[]])[rpo.winnerTeam].includes(myIdxR)) ||
+      (rpo.winnerIdx !== undefined && rpo.winnerIdx === myIdxR)
+    );
+    const rMyLost = myIdxR >= 0 && !rMyWon;
+    const rPuttMoney = rMyWon
+      ? `+$${(rStake * rpo.pot * 2 * (r.gameType==='scramble'?(r.scrambleTeams||[[],[]])[rpo.winnerTeam===0?1:0].length:r.players.length-1)).toFixed(2)}`
+      : rMyLost ? `−$${puttAmt}` : `$${puttAmt}`;
+    hrHtml = `<div class="hr-row hr-row--puttoff">
+      <span class="hr-num">⛳ Putt-Off</span>
+      <span class="hr-teams">🏆 ${puttWinner}</span>
+      <span class="hr-badge win">Win</span>
+      <span class="hr-money ${rMyWon?'pos':rMyLost?'neg':''}">${rPuttMoney}</span>
+    </div>` + hrHtml;
+  }
 
   html += `<div class="totals-section-title">Hole Results</div><div class="hole-results">${hrHtml}</div>`;
   html += '<div style="height:8px"></div>';

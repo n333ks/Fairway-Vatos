@@ -792,11 +792,9 @@ function selGameType(type) {
   });
   const stakeSection = document.querySelector('#sc-setup .section:has(#stake-val)');
   if (stakeSection) stakeSection.style.display = type === 'card' ? 'none' : '';
-  const hdr = document.getElementById('players-section-hdr');
-  if (hdr) hdr.textContent = type === 'scramble'
-    ? 'Players — tap in tee order (need exactly 4)'
-    : 'Players — tap in tee order for hole 1';
-  renderTeamAssignment();
+  const teamAssign = document.getElementById('team-assignment');
+  if (teamAssign) teamAssign.style.display = 'none';
+  renderPickerUI();
 }
 
 function renderTeamAssignment() {
@@ -847,18 +845,56 @@ async function renderPlayerInputs() {
 
 function renderPickerUI() {
   const el = document.getElementById('player-inputs');
+
+  // Update section header
+  const hdr = document.getElementById('players-section-hdr');
+  if (hdr) {
+    if (gameType === 'scramble') {
+      const team1Count = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 0).length;
+      const team2Count = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 1).length;
+      if (team1Count < 2) hdr.textContent = `${scrambleTeamNames[0]} — pick 2 players`;
+      else if (team2Count < 2) hdr.textContent = `${scrambleTeamNames[1]} — pick 2 players`;
+      else hdr.textContent = 'Scramble — ready!';
+    } else if (gameType === 'stroke') {
+      hdr.textContent = 'Players — 1 to 4, lowest unique score wins each hole';
+    } else if (gameType === 'card') {
+      hdr.textContent = 'Players — 1 to 4 players';
+    } else {
+      hdr.textContent = 'Players — tap in tee order for hole 1';
+    }
+  }
+
   const cards = knownUsers.map(u => {
     const idx = selectedPlayers.findIndex(p => p.uid === u.uid);
     const sel = idx >= 0;
-    return `<button class="player-pick-btn${sel ? ' sel' : ''}" onclick="togglePlayer('${u.uid}')">
+    const teamCls = sel && gameType === 'scramble'
+      ? (scrambleTeamAssign[idx] === 0 ? ' team-a-pick' : ' team-b-pick') : '';
+    return `<button class="player-pick-btn${sel ? ' sel' : ''}${teamCls}" onclick="togglePlayer('${u.uid}')">
       ${sel ? `<span class="player-pick-num">${idx + 1}</span>` : ''}
       <span class="player-pick-name">${u.name}</span>
     </button>`;
   }).join('');
-  const order = selectedPlayers.length
-    ? `<div class="player-pick-order">${selectedPlayers.map((p,i) => `<span class="pick-slot">${i+1}. ${p.name}</span>`).join('')}</div>`
-    : '';
-  el.innerHTML = `<div class="player-pick-grid">${cards}</div>${order}`;
+
+  // Scramble: show team name inputs + rosters inline
+  let extra = '';
+  if (gameType === 'scramble') {
+    const t1 = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 0).map(p => p.name).join(', ');
+    const t2 = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 1).map(p => p.name).join(', ');
+    extra = `<div class="scramble-teams-inline">
+      <div class="sti-team team-a-pick">
+        <input class="team-name-input a" value="${scrambleTeamNames[0]}" oninput="setTeamName(0,this.value)" placeholder="Team 1">
+        <div class="sti-roster">${t1 || '—'}</div>
+      </div>
+      <div class="sti-team team-b-pick">
+        <input class="team-name-input b" value="${scrambleTeamNames[1]}" oninput="setTeamName(1,this.value)" placeholder="Team 2">
+        <div class="sti-roster">${t2 || '—'}</div>
+      </div>
+    </div>`;
+  } else if (selectedPlayers.length) {
+    extra = `<div class="player-pick-order">${selectedPlayers.map((p,i) => `<span class="pick-slot">${i+1}. ${p.name}</span>`).join('')}</div>`;
+  }
+
+  el.innerHTML = `<div class="player-pick-grid">${cards}</div>${extra}`;
 }
 
 function togglePlayer(uid) {
@@ -875,7 +911,6 @@ function togglePlayer(uid) {
     selectedPlayers.push({ name: user.name, uid: user.uid });
   }
   renderPickerUI();
-  renderTeamAssignment();
 }
 
 function saveSession() {

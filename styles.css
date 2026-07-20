@@ -129,6 +129,7 @@ body {
 .course-card-photo { background-size:cover; background-position:center; min-height:110px; }
 .course-card-inner { padding: 16px }
 .course-card-inner-overlay {
+  background: rgba(0,0,0,0.38);
   padding: 16px;
 }
 .course-card-inner-overlay .course-card-name { color:#fff }

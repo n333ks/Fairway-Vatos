@@ -2232,7 +2232,9 @@ function renderHomeRecent() {
       show('sc-home');
     } else {
       loginMode = 'signin';
-      document.getElementById('login-submit-btn').textContent = 'Sign In';
+      const submitBtn = document.getElementById('login-submit-btn');
+      submitBtn.textContent = 'Sign In';
+      submitBtn.disabled = false;
       document.getElementById('login-toggle-btn').textContent = 'Create Account';
       document.getElementById('login-subtitle').textContent   = 'Sign in to continue';
       document.getElementById('login-name').value     = '';

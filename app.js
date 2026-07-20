@@ -2456,6 +2456,19 @@ function renderHomeRecent() {
       renderCourses();
       renderHomeRecent();
       show('sc-home');
+      // Seed localStorage from Firestore on fresh install so recent round shows immediately
+      const localHist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
+      if (!localHist.length) {
+        db.collection('users').doc(user.uid).collection('rounds')
+          .orderBy('date', 'desc').limit(10).get()
+          .then(snap => {
+            if (!snap.empty) {
+              const hist = snap.docs.map(d => roundFromFS(d.data()));
+              localStorage.setItem('hog_rounds', JSON.stringify(hist));
+              renderHomeRecent();
+            }
+          }).catch(() => {});
+      }
     } else {
       loginMode = 'signin';
       const submitBtn = document.getElementById('login-submit-btn');

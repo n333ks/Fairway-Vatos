@@ -672,15 +672,13 @@ function renderCourses() {
       <div class="course-card-inner${c.photo ? ' course-card-inner-overlay' : ''}">
         <div class="course-card-row">
           <div>
-            <div class="course-card-name">${c.name}</div>
+            <div class="course-card-name">${c.name} <span class="course-card-par">| Par ${c.par.reduce((a,b)=>a+b,0)}</span></div>
             <div class="course-card-sub">${c.sub}</div>
           </div>
           <div class="course-card-chevron">›</div>
         </div>
         <div class="course-card-meta">
           <span class="course-meta-location">${c.location || ''}</span>
-          ${c.designer ? `<span class="course-meta-divider">|</span><span class="course-meta-designer">${c.designer}</span>` : ''}
-          <span class="course-meta-divider">|</span><span class="course-meta-par">Par ${c.par.reduce((a,b)=>a+b,0)}</span>
         </div>
       </div>
     </div>`).join('');

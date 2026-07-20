@@ -2217,6 +2217,13 @@ function renderHomeRecent() {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
 
+  // Scroll focused input into view when iOS keyboard opens
+  document.querySelectorAll('.login-input').forEach(inp => {
+    inp.addEventListener('focus', () => {
+      setTimeout(() => inp.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+    });
+  });
+
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {

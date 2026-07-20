@@ -648,16 +648,17 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 32px 24px calc(var(--sb) + 32px);
+  justify-content: flex-start;
+  padding: 48px 24px calc(var(--sb) + 24px);
   gap: 12px;
+  overflow-y: auto;
 }
 .login-logo {
-  width: 180px;
-  height: 180px;
+  width: 130px;
+  height: 130px;
   object-fit: contain;
-  border-radius: 36px;
-  margin-bottom: 8px;
+  border-radius: 28px;
+  margin-bottom: 4px;
 }
 .login-subtitle {
   font-size: 15px;

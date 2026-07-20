@@ -2344,7 +2344,43 @@ function viewRound(id, backTo = 'sc-history') {
         <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
       </div>`;
     }
-  } else {
+  } else if (r.gameType === 'stroke') {
+    // Skins: rebuild carry chain from scores
+    let pot = 1;
+    const skinResults = [];
+    for (const h of rActiveHoles) {
+      const sc = rPlayers.map((_, p) => (r.scores[h] || [])[p]);
+      const allEntered = sc.every(v => v !== null && v !== undefined);
+      if (!allEntered) { skinResults.push({h, tied:false, winner:null, n:pot, pending:true}); continue; }
+      const min = Math.min(...sc);
+      const wIdxs = rPlayers.map((_,p) => p).filter(p => sc[p] === min);
+      if (wIdxs.length === 1) {
+        skinResults.push({h, tied:false, winner:wIdxs[0], n:pot, pending:false});
+        pot = 1;
+      } else {
+        skinResults.push({h, tied:true, winner:null, n:pot, pending:false});
+        pot++;
+      }
+    }
+    for (let ri = skinResults.length - 1; ri >= 0; ri--) {
+      const {h, tied, winner, n, pending} = skinResults[ri];
+      if (pending) continue;
+      anyResult = true;
+      const s = (r.stake * n).toFixed(2);
+      const winAmt = (r.stake * n * (rPlayers.length - 1)).toFixed(2);
+      const myResult = tied ? 'tie' : winner === myIdxR ? 'win' : myIdxR >= 0 ? 'lose' : null;
+      const badge = myResult==='win'?'win':myResult==='lose'?'lose':myResult==='tie'?'tie':'pend';
+      const label = myResult==='win'?'Win':myResult==='lose'?'Lose':myResult==='tie'?'Tie':'—';
+      const teams = tied ? '🔄 Carryover' : `🏆 ${shortName(rPlayers[winner])}`;
+      const moneyStr = tied ? '→ next' : myResult==='win' ? `+$${winAmt}` : myResult==='lose' ? `−$${s}` : '—';
+      hrHtml += `<div class="hr-row">
+        <span class="hr-num">H${h+1}${n>1?' ×'+n:''}</span>
+        <span class="hr-teams">${teams}</span>
+        <span class="hr-badge ${badge}">${label}</span>
+        <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
+      </div>`;
+    }
+  } else if (r.gameType !== 'card') {
     for (let ri = rActiveHoles.length - 1; ri >= 0; ri--) {
       const h = rActiveHoles[ri];
       const hole=r.holes[h], ch=rChains[h];
@@ -2388,7 +2424,7 @@ function viewRound(id, backTo = 'sc-history') {
       </div>`;
     }
   }
-  if (!anyResult) hrHtml = `<div class="hr-row"><span style="color:var(--tx2);font-size:14px">No holes recorded</span></div>`;
+  if (!anyResult && r.gameType !== 'card') hrHtml = `<div class="hr-row"><span style="color:var(--tx2);font-size:14px">No holes recorded</span></div>`;
 
   // Prepend putt-off result if present
   if (r.puttOff && r.gameType !== 'card') {

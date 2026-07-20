@@ -130,7 +130,7 @@ function listenToRound(key) {
       cIdx = d.courseIdx; tIdx = d.teeIdx;
       players = d.players; stake = d.stake;
       holeCount = d.holeCount; nineChoice = d.nineChoice;
-      gameType = d.gameType || 'hog'; scrambleTeams = d.scrambleTeams || [[], []]; scrambleTeamNames = d.scrambleTeamNames || ['Team A', 'Team B'];
+      gameType = d.gameType || 'hog'; scrambleTeams = d.scrambleTeams || [[], []]; scrambleTeamNames = d.scrambleTeamNames || ['', ''];
       scores = fsToScores(d.scores); holes = d.holes; touched = fsToTouched(d.touched);
       currentHole = d.currentHole;
       recomputeAll();
@@ -357,7 +357,7 @@ let nineChoice = 'front'; // 'front' or 'back'
 let gameType   = 'hog';   // 'hog' | 'scramble' | 'stroke'
 let scrambleTeams     = [[], []]; // [[playerIdx,playerIdx],[playerIdx,playerIdx]] during round
 let scrambleTeamAssign = [0, 0, 1, 1]; // team (0/1) for each position in selectedPlayers
-let scrambleTeamNames  = ['Team A', 'Team B'];
+let scrambleTeamNames  = ['', ''];
 
 // Compat helper: players can be {name,uid} objects (new) or strings (old history)
 function pname(p) { return typeof p === 'string' ? p : (p && p.name) || 'Player'; }
@@ -822,7 +822,7 @@ function renderTeamAssignment() {
 }
 
 function setTeamName(t, name) {
-  scrambleTeamNames[t] = name || (t === 0 ? 'Team A' : 'Team B');
+  scrambleTeamNames[t] = name;
 }
 
 function switchTeam(i) {
@@ -852,8 +852,8 @@ function renderPickerUI() {
     if (gameType === 'scramble') {
       const team1Count = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 0).length;
       const team2Count = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 1).length;
-      if (team1Count < 2) hdr.textContent = `${scrambleTeamNames[0]} — pick 2 players`;
-      else if (team2Count < 2) hdr.textContent = `${scrambleTeamNames[1]} — pick 2 players`;
+      if (team1Count < 2) hdr.textContent = `${scrambleTeamNames[0] || 'Team A'} — pick 2 players`;
+      else if (team2Count < 2) hdr.textContent = `${scrambleTeamNames[1] || 'Team B'} — pick 2 players`;
       else hdr.textContent = 'Scramble — ready!';
     } else if (gameType === 'stroke') {
       hdr.textContent = 'Players — 1 to 4, lowest unique score wins each hole';
@@ -882,11 +882,11 @@ function renderPickerUI() {
     const t2pills = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 1).map(p => `<span class="sti-pill sti-pill-b">${p.name}</span>`).join('');
     extra = `<div class="scramble-teams-inline">
       <div class="sti-team team-a-pick">
-        <input class="team-name-input a" value="${scrambleTeamNames[0]}" oninput="setTeamName(0,this.value)" placeholder="Team 1">
+        <input class="team-name-input a" value="${scrambleTeamNames[0]}" oninput="setTeamName(0,this.value)" placeholder="Team A">
         <div class="sti-roster">${t1pills || '<span class="sti-empty">—</span>'}</div>
       </div>
       <div class="sti-team team-b-pick">
-        <input class="team-name-input b" value="${scrambleTeamNames[1]}" oninput="setTeamName(1,this.value)" placeholder="Team 2">
+        <input class="team-name-input b" value="${scrambleTeamNames[1]}" oninput="setTeamName(1,this.value)" placeholder="Team B">
         <div class="sti-roster">${t2pills || '<span class="sti-empty">—</span>'}</div>
       </div>
     </div>`;
@@ -935,7 +935,7 @@ function continueRound() {
   currentHole = s.currentHole; currentRoundId = s.currentRoundId;
   holeCount = s.holeCount || 18; nineChoice = s.nineChoice || 'front';
   gameType = s.gameType || 'hog'; scrambleTeams = s.scrambleTeams || [[], []];
-  scrambleTeamNames = s.scrambleTeamNames || ['Team A', 'Team B'];
+  scrambleTeamNames = s.scrambleTeamNames || ['', ''];
   isScorekeeper = true; // local session = always scorekeeper
   showTab('holes');
   renderHoles();
@@ -963,6 +963,7 @@ async function startRound() {
     const tA = selectedPlayers.map((_, i) => i).filter(i => scrambleTeamAssign[i] === 0);
     const tB = selectedPlayers.map((_, i) => i).filter(i => scrambleTeamAssign[i] === 1);
     if (tA.length !== 2 || tB.length !== 2) { alert('Each team needs exactly 2 players.'); return; }
+    if (!scrambleTeamNames[0].trim() || !scrambleTeamNames[1].trim()) { alert('Please enter a name for both teams.'); return; }
     scrambleTeams = [tA, tB];
   } else {
     if (selectedPlayers.length < 2) { alert('Select at least 2 players.'); return; }
@@ -1073,7 +1074,7 @@ function renderHolesBodyHog(h) {
 function renderHolesBodyScramble(h) {
   const chains = buildScrambleChains(), ch = chains[h];
   const a0 = scrambleTeams[0][0], b0 = scrambleTeams[1][0];
-  const tA = scrambleTeamNames[0], tB = scrambleTeamNames[1];
+  const tA = scrambleTeamNames[0] || 'Team A', tB = scrambleTeamNames[1] || 'Team B';
   const ready = touched[h][a0] && touched[h][b0];
   const stakeTag = ch.n > 1 ? `<span class="carry-tag">$${(stake*ch.n).toFixed(2)}/team</span>` : '';
   const blocked = !ready
@@ -1345,7 +1346,7 @@ function renderHoleBodyScramble(h, ch) {
   const el = document.getElementById('hb-' + h);
   if (!el) return;
   const a0 = scrambleTeams[0][0], b0 = scrambleTeams[1][0];
-  const tA = scrambleTeamNames[0], tB = scrambleTeamNames[1];
+  const tA = scrambleTeamNames[0] || 'Team A', tB = scrambleTeamNames[1] || 'Team B';
   const aMembers = scrambleTeams[0].map(i => shortName(players[i])).join(' + ');
   const bMembers = scrambleTeams[1].map(i => shortName(players[i])).join(' + ');
   const s = (stake * ch.n).toFixed(2), ns = (stake * (ch.n + 1)).toFixed(2);
@@ -1637,8 +1638,8 @@ function renderTotals() {
   if (gameType === 'scramble') {
     const chains = buildScrambleChains();
     const myTeam = myIdx >= 0 ? scrambleTeams.findIndex(t => t.includes(myIdx)) : -1;
-    const aName  = scrambleTeamNames[0];
-    const bName  = scrambleTeamNames[1];
+    const aName  = scrambleTeamNames[0] || 'Team A';
+    const bName  = scrambleTeamNames[1] || 'Team B';
     for (let h = lastHole(); h >= firstHole(); h--) {
       const r = holes[h].result, ch = chains[h];
       const s = (stake * ch.n).toFixed(2);
@@ -1977,7 +1978,7 @@ function viewRound(id) {
   scores  = r.scores;
   gameType = r.gameType || 'hog';
   scrambleTeams = r.scrambleTeams || [[], []];
-  scrambleTeamNames = r.scrambleTeamNames || ['Team A', 'Team B'];
+  scrambleTeamNames = r.scrambleTeamNames || ['', ''];
   holeCount = r.holeCount || 18;
   nineChoice = r.nineChoice || 'front';
   currentHole = -1;

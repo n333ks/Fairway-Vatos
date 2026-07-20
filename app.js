@@ -2703,7 +2703,10 @@ function renderHomeRecent() {
       document.getElementById('login-password').value = '';
       document.getElementById('login-error').textContent = '';
       show('sc-login');
-      setTimeout(() => document.activeElement?.blur(), 0);
+      setTimeout(() => {
+        document.getElementById('login-name')?.blur();
+        document.getElementById('login-password')?.blur();
+      }, 100);
     }
   });
 })();

@@ -472,7 +472,7 @@ function buildSkinsResults() {
 
 function recomputeAll() {
   if (gameType === 'scramble') return recomputeScramble();
-  if (gameType === 'stroke')   return; // skins computed on-the-fly from scores
+  if (gameType === 'stroke' || gameType === 'card') return;
   let cv      = null;
   let betHole = 0;
   for (let h = 0; h < 18; h++) {
@@ -553,6 +553,7 @@ function calcStrokeMoney() {
 function calcMoney() {
   if (gameType === 'scramble') return calcScrambleMoney();
   if (gameType === 'stroke')   return calcStrokeMoney();
+  if (gameType === 'card')     return players.map(() => 0);
   const cs  = buildChains();
   const tot = new Array(players.length).fill(0);
   for (let h = 0; h < 18; h++) {
@@ -730,8 +731,10 @@ function adjStake(dir) {
 function selGameType(type) {
   gameType = type;
   document.querySelectorAll('.game-type-btn').forEach((b, i) => {
-    b.classList.toggle('sel', ['hog','scramble','stroke'][i] === type);
+    b.classList.toggle('sel', ['hog','scramble','stroke','card'][i] === type);
   });
+  const stakeSection = document.querySelector('#sc-setup .section:has(#stake-val)');
+  if (stakeSection) stakeSection.style.display = type === 'card' ? 'none' : '';
   const hdr = document.getElementById('players-section-hdr');
   if (hdr) hdr.textContent = type === 'scramble'
     ? 'Players — tap in tee order (need exactly 4)'
@@ -936,6 +939,7 @@ function renderHoles() {
 
   if (gameType === 'scramble') renderHolesBodyScramble(h);
   else if (gameType === 'stroke') renderHolesBodyStroke(h);
+  else if (gameType === 'card')   renderHolesBodyCard(h);
   else renderHolesBodyHog(h);
 
   renderMiniScorecard();
@@ -1223,6 +1227,30 @@ function teamBNames(o, fi, pi) {
   return o.filter(i => i !== fi && i !== pi).map(i => shortName(players[i])).join(' + ');
 }
 
+function renderHolesBodyCard(h) {
+  const ready = touched[h].every(t => t);
+  const blocked = !ready
+    ? `<div class="next-hole-blocked">Enter all scores to continue</div>`
+    : h === lastHole() ? ''
+    : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
+  document.getElementById('holes-body').innerHTML = `
+    <div class="hole-card" id="hole-${h}">
+      <div class="hole-card-hdr">
+        <div>
+          <div class="first-tee-lbl">Stroke Play</div>
+          <div class="first-tee-name">${players.map(p => shortName(p)).join(' · ')}</div>
+        </div>
+      </div>
+      <div class="team-section">
+        ${players.map((p, i) => scoreRowHTML(h, i, shortName(p))).join('')}
+      </div>
+    </div>
+    ${blocked}
+    <div class="totals-section-title">Scorecard</div>
+    <div id="mini-sc"></div>`;
+  renderMiniScorecard();
+}
+
 function renderHoleBodyScramble(h, ch) {
   const el = document.getElementById('hb-' + h);
   if (!el) return;
@@ -1456,16 +1484,26 @@ function renderTotals() {
   const pout  = par.slice(0,9).reduce((a,b) => a+b, 0);
   const pin   = par.slice(9).reduce((a,b) => a+b, 0);
 
-  document.getElementById('money-grid').innerHTML = players.map((p, i) => {
-    const amt = money[i];
-    const cls = amt > 0 ? 'pos' : amt < 0 ? 'neg' : 'neu';
-    const disp = (amt >= 0 ? '+' : '−') + '$' + Math.abs(amt).toFixed(2);
-    return `<div class="money-card">
-      <div class="money-name">${pname(p)}</div>
-      <div class="money-amt ${cls}">${disp}</div>
-    </div>`;
-  }).join('');
-  renderPayouts(players, money, 'payouts-list');
+  const moneyGrid = document.getElementById('money-grid');
+  const payoutsList = document.getElementById('payouts-list');
+  const payoutsTitle = payoutsList ? payoutsList.previousElementSibling : null;
+  if (gameType === 'card') {
+    if (moneyGrid) moneyGrid.innerHTML = '';
+    if (payoutsList) payoutsList.innerHTML = '';
+    if (payoutsTitle) payoutsTitle.style.display = 'none';
+  } else {
+    if (payoutsTitle) payoutsTitle.style.display = '';
+    moneyGrid.innerHTML = players.map((p, i) => {
+      const amt = money[i];
+      const cls = amt > 0 ? 'pos' : amt < 0 ? 'neg' : 'neu';
+      const disp = (amt >= 0 ? '+' : '−') + '$' + Math.abs(amt).toFixed(2);
+      return `<div class="money-card">
+        <div class="money-name">${pname(p)}</div>
+        <div class="money-amt ${cls}">${disp}</div>
+      </div>`;
+    }).join('');
+    renderPayouts(players, money, 'payouts-list');
+  }
 
   function buildTotalsHalf(startH, endH, halfLabel, colLabel) {
     return buildScorecardHalf(startH, endH, halfLabel, colLabel);
@@ -1597,8 +1635,15 @@ function renderTotals() {
     }
   }
 
-  document.getElementById('hole-results').innerHTML = hr ||
-    '<div class="hr-row"><span style="color:var(--tx2);font-size:14px">No holes entered yet</span></div>';
+  const hrTitle = document.getElementById('hole-results-title');
+  if (gameType === 'card') {
+    if (hrTitle) hrTitle.style.display = 'none';
+    document.getElementById('hole-results').innerHTML = '';
+  } else {
+    if (hrTitle) hrTitle.style.display = '';
+    document.getElementById('hole-results').innerHTML = hr ||
+      '<div class="hr-row"><span style="color:var(--tx2);font-size:14px">No holes entered yet</span></div>';
+  }
 }
 
 function simplifyDebts(players, money) {

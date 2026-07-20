@@ -266,6 +266,7 @@ const COURSES = [{
   sub:  "Boulder Course",
   location: "Cathedral City, California",
   designer: "John Fought & Todd Schroeder",
+  photo: "Photos/Cimarron.png",
   tees: [
     { n:"Cimarron",     bg:"#111111", fg:"#ffffff", tot:6732, rating:72.0, slope:124,
       yds:[390,440,590,347,159,502,449,349,160, 440,413,191,548,218,339,474,169,569] },

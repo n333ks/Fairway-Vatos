@@ -146,7 +146,7 @@ body {
 .course-card-inner-overlay .course-meta-par,
 .course-card-inner-overlay .course-meta-divider  { color:rgba(255,255,255,0.7) }
 .course-card-name { font-size:17px; font-weight:600 }
-.course-card-par  { font-size:15px; font-weight:400; opacity:0.75 }
+.course-card-par  { font-weight:400; opacity:0.75 }
 .course-card-sub  { font-size:14px; color:var(--tx2); margin-top:2px }
 .course-card-row  { display:flex; align-items:center; justify-content:space-between }
 .course-card-chevron { color:var(--tx3); font-size:20px; line-height:1 }

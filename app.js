@@ -281,7 +281,7 @@ const COURSES = [{
   hcp: [7,1,5,11,15,17,3,9,13, 4,6,16,14,8,18,2,10,12]
 },{
   name: "Hansen Dam Golf Course",
-  sub:  "Championship Course",
+  sub:  "Municipal Course",
   location: "Lake View Terrace, California",
   designer: "Ray Goates",
   photo: "Photos/Hansen.png",
@@ -297,7 +297,7 @@ const COURSES = [{
   hcp: [13,17,3,11,5,7,15,9,1, 10,18,6,4,16,12,14,8,2]
 },{
   name: "Woodley Lakes Golf Course",
-  sub:  "Championship Course",
+  sub:  "Municipal Course",
   location: "Van Nuys, California",
   photo: "Photos/Woodley.png",
   tees: [
@@ -312,7 +312,7 @@ const COURSES = [{
   hcp: [9,13,5,7,3,11,15,17,1, 2,18,8,16,10,12,6,4,14]
 },{
   name: "DeBell Golf Club",
-  sub:  "Championship Course",
+  sub:  "Municipal Course",
   location: "Burbank, California",
   photo: "Photos/DeBell.png",
   tees: [
@@ -325,7 +325,7 @@ const COURSES = [{
   hcp: [5,9,11,3,15,17,7,1,13, 2,4,18,8,16,12,14,10,6]
 },{
   name: "Scholl Canyon Golf Club",
-  sub:  "Executive Course",
+  sub:  "Municipal Course",
   location: "Glendale, California",
   photo: "Photos/Scholl.png",
   tees: [
@@ -672,8 +672,8 @@ function renderCourses() {
       <div class="course-card-inner${c.photo ? ' course-card-inner-overlay' : ''}">
         <div class="course-card-row">
           <div>
-            <div class="course-card-name">${c.name} <span class="course-card-par">| Par ${c.par.reduce((a,b)=>a+b,0)}</span></div>
-            <div class="course-card-sub">${c.sub}</div>
+            <div class="course-card-name">${c.name}</div>
+            <div class="course-card-sub">${c.sub} <span class="course-card-par">| Par ${c.par.reduce((a,b)=>a+b,0)}</span></div>
           </div>
           <div class="course-card-chevron">›</div>
         </div>

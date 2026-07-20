@@ -1,4 +1,4 @@
-const CACHE = 'fairway-vatos-v79';
+const CACHE = 'fairway-vatos-v80';
 const PRECACHE = [
   './manifest.json',
   './icon.png',
@@ -7,7 +7,8 @@ const PRECACHE = [
   './Photos/Cimarron.png',
   './Photos/Hansen.png',
   './Photos/Woodley.png',
-  './Photos/DeBell.png'
+  './Photos/DeBell.png',
+  './Photos/Scholl.png'
 ];
 
 // Network-first for HTML/CSS/JS so updates deploy immediately

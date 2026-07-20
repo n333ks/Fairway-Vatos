@@ -1963,7 +1963,7 @@ function renderHistoryList(hist) {
     const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
     return `<div class="history-card" onclick="viewRound(${r.id})">
       <div class="history-card-top">
-        <div class="history-card-course">${r.courseSub}</div>
+        <div class="history-card-course">${r.courseName}<div class="history-card-sub">${r.courseSub}</div></div>
         <div class="history-card-chevron">›</div>
       </div>
       <div class="history-card-tee">${date} · ${r.tee} tees · $${r.stake.toFixed(2)}/hole</div>
@@ -2427,7 +2427,7 @@ function renderHomeRecent() {
       <span class="home-recent-label">Recent Round</span>
       <span class="home-recent-chevron">›</span>
     </div>
-    <div class="home-recent-course">${r.courseSub || r.course}</div>
+    <div class="home-recent-course">${r.courseName || ''}<div class="home-recent-sub">${r.courseSub || r.course}</div></div>
     <div class="home-recent-meta">${date} · ${r.tee} tees · $${r.stake}/hole</div>
     ${playerRowHTML(r.players, r.money)}
   </div>`;

@@ -1637,18 +1637,25 @@ function renderTotals() {
   }
 
   const scPage = scorecardPage;
-  const offset = scPage === 0 ? '0%' : '-50%';
-  document.getElementById('sc-table').innerHTML = `
-    <div class="totals-sc-viewport">
-      <div class="totals-sc-track" id="totals-sc-track" style="transform:translateX(${offset})">
-        ${buildTotalsHalf(0, 9, 'Front Nine', 'Out')}
-        ${buildTotalsHalf(9, 18, 'Back Nine', 'In')}
+  if (holeCount === 9) {
+    const startH = nineChoice === 'back' ? 9 : 0;
+    const endH   = nineChoice === 'back' ? 18 : 9;
+    const label  = nineChoice === 'back' ? 'Back Nine' : 'Front Nine';
+    document.getElementById('sc-table').innerHTML = buildTotalsHalf(startH, endH, label, 'Total');
+  } else {
+    const offset = scPage === 0 ? '0%' : '-50%';
+    document.getElementById('sc-table').innerHTML = `
+      <div class="totals-sc-viewport">
+        <div class="totals-sc-track" id="totals-sc-track" style="transform:translateX(${offset})">
+          ${buildTotalsHalf(0, 9, 'Front Nine', 'Out')}
+          ${buildTotalsHalf(9, 18, 'Back Nine', 'In')}
+        </div>
       </div>
-    </div>
-    <div class="mini-sc-dots" style="padding:10px 0 4px">
-      <span class="mini-sc-dot${scPage===0?' on':''}"></span>
-      <span class="mini-sc-dot${scPage===1?' on':''}"></span>
-    </div>`;
+      <div class="mini-sc-dots" style="padding:10px 0 4px">
+        <span class="mini-sc-dot${scPage===0?' on':''}"></span>
+        <span class="mini-sc-dot${scPage===1?' on':''}"></span>
+      </div>`;
+  }
 
   // Swipe gesture on totals scorecard
   const tvp = document.querySelector('#sc-table .totals-sc-viewport');
@@ -2040,24 +2047,30 @@ function viewRound(id) {
   currentHole = -1;
   scorecardPage = 0;
 
-  const scFront = buildScorecardHalf(0, 9, 'Front Nine', 'Out');
-  const scBack  = buildScorecardHalf(9, 18, 'Back Nine', 'In');
+  let scHtml;
+  if (holeCount === 9) {
+    const startH = nineChoice === 'back' ? 9 : 0;
+    const endH   = nineChoice === 'back' ? 18 : 9;
+    const label  = nineChoice === 'back' ? 'Back Nine' : 'Front Nine';
+    scHtml = buildScorecardHalf(startH, endH, label, 'Total');
+  } else {
+    const scFront = buildScorecardHalf(0, 9, 'Front Nine', 'Out');
+    const scBack  = buildScorecardHalf(9, 18, 'Back Nine', 'In');
+    scHtml = `<div class="totals-sc-viewport" id="hist-sc-viewport">
+      <div class="totals-sc-track" id="hist-sc-track">${scFront}${scBack}</div>
+    </div>
+    <div class="mini-sc-dots" style="padding:10px 0 4px">
+      <span class="mini-sc-dot on" id="hist-dot-0"></span>
+      <span class="mini-sc-dot" id="hist-dot-1"></span>
+    </div>`;
+  }
 
   cIdx = _cIdx; tIdx = _tIdx; players = _players; scores = _scores;
   currentHole = _currentHole; scorecardPage = _scPage;
   gameType = _gameType; scrambleTeams = _scrambleTeams; scrambleTeamNames = _scrambleTeamNames;
   holeCount = _holeCount; nineChoice = _nineChoice;
 
-  html += `<div class="totals-section-title">Scorecard</div>
-    <div class="totals-sc-viewport" id="hist-sc-viewport">
-      <div class="totals-sc-track" id="hist-sc-track">
-        ${scFront}${scBack}
-      </div>
-    </div>
-    <div class="mini-sc-dots" style="padding:10px 0 4px">
-      <span class="mini-sc-dot on" id="hist-dot-0"></span>
-      <span class="mini-sc-dot" id="hist-dot-1"></span>
-    </div>`;
+  html += `<div class="totals-section-title">Scorecard</div>${scHtml}`;
 
   // Hole results — perspective-based, first names only
   const rPlayers = r.players;
@@ -2081,9 +2094,13 @@ function viewRound(id) {
     return chains;
   })();
 
+  const rActiveHoles = r.holeCount === 9
+    ? (r.nineChoice === 'back' ? [9,10,11,12,13,14,15,16,17] : [0,1,2,3,4,5,6,7,8])
+    : Array.from({length:18},(_,i)=>i);
   let anyResult = false;
   let hrHtml = '';
-  for (let h=17;h>=0;h--) {
+  for (let ri = rActiveHoles.length - 1; ri >= 0; ri--) {
+    const h = rActiveHoles[ri];
     const hole=r.holes[h], ch=rChains[h];
     const tp=ch.carry?ch.t:hole.type;
     if (!tp) continue;

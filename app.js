@@ -857,7 +857,7 @@ function renderPickerUI() {
   }).join('');
   const order = selectedPlayers.length
     ? `<div class="player-pick-order">${selectedPlayers.map((p,i) => `<span class="pick-slot">${i+1}. ${p.name}</span>`).join('')}</div>`
-    : `<div class="player-pick-hint">Tap players in tee order</div>`;
+    : '';
   el.innerHTML = `<div class="player-pick-grid">${cards}</div>${order}`;
 }
 

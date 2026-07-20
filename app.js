@@ -283,7 +283,7 @@ const COURSES = [{
   name: "Hansen Dam Golf Course",
   sub:  "Championship Course",
   location: "Lake View Terrace, California",
-  designer: "William F. Bell",
+  designer: "Ray Goates",
   photo: "Photos/Hansen.png",
   tees: [
     { n:"Black", bg:"#111111", fg:"#ffffff", tot:6801, rating:72.1, slope:124,

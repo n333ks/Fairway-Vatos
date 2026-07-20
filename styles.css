@@ -126,12 +126,14 @@ body {
   box-shadow: var(--shadow);
 }
 .course-card:active { opacity: 0.7 }
-.course-card-photo { background-size:cover; background-position:center; min-height:110px; }
-.course-card-inner { padding: 16px }
-.course-card-inner-overlay {
-  background: rgba(0,0,0,0.38);
-  padding: 16px;
+.course-card-photo { background-size:cover; background-position:center; min-height:110px; position:relative; }
+.course-card-photo::after {
+  content:''; position:absolute; inset:0;
+  background:rgba(0,0,0,0.38); border-radius:var(--r);
+  pointer-events:none;
 }
+.course-card-inner { padding: 16px }
+.course-card-inner-overlay { padding: 16px; position:relative; z-index:1; }
 .course-card-inner-overlay .course-card-name { color:#fff }
 .course-card-inner-overlay .course-card-sub  { color:rgba(255,255,255,0.75) }
 .course-card-inner-overlay .course-card-chevron { color:rgba(255,255,255,0.6) }

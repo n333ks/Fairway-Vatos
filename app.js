@@ -630,7 +630,7 @@ function submitScores() {
   renderHomeRecent();
   // Navigate to history and open the round summary
   showHistory().then(() => {
-    if (savedId) viewRound(savedId);
+    if (savedId) viewRound(savedId, 'sc-home');
   });
 }
 
@@ -1998,7 +1998,12 @@ async function showHistory() {
   }
 }
 
-function viewRound(id) {
+function viewRound(id, backTo = 'sc-history') {
+  const btn = document.getElementById('detail-back-btn');
+  if (btn) {
+    btn.textContent = backTo === 'sc-home' ? '← Home' : '← History';
+    btn.onclick = () => show(backTo);
+  }
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
   const r    = hist.find(r => r.id === id);
   if (!r) return;
@@ -2422,7 +2427,7 @@ function renderHomeRecent() {
   const r    = hist[0];
   const d    = new Date(r.date);
   const date = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-  recentEl.innerHTML = `<div class="home-recent-card" onclick="viewRound(${r.id}); show('sc-history-detail')">
+  recentEl.innerHTML = `<div class="home-recent-card" onclick="viewRound(${r.id},'sc-home')">
     <div class="home-recent-hdr">
       <span class="home-recent-label">Recent Round</span>
       <span class="home-recent-chevron">›</span>

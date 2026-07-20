@@ -1187,10 +1187,10 @@ function buildScorecardHalfScramble(startH, endH, halfLabel, colLabel, solo = fa
   const halfPar  = par.slice(startH, endH).reduce((a,b) => a+b, 0);
   const grandPar = par.reduce((a,b) => a+b, 0);
   let thead = `<thead><tr><th class="stk">Hole</th>`;
-  for (let h = startH; h < endH; h++) thead += `<th${h===currentHole?' class="mini-cur"':''}>${h+1}</th>`;
+  for (let h = startH; h < endH; h++) thead += `<th${h===currentHole?' class="mini-cur"':''}><span class="cn">${h+1}</span></th>`;
   thead += `<th class="sep">${colLabel}</th>${isBack ? '<th class="sep">Tot</th>' : ''}</tr></thead>`;
   let tbody = `<tbody><tr class="par-row"><td class="stk">Par</td>`;
-  par.slice(startH, endH).forEach(p => tbody += `<td>${p}</td>`);
+  par.slice(startH, endH).forEach(p => tbody += `<td><span class="cn">${p}</span></td>`);
   tbody += `<td class="sep">${halfPar}</td>${isBack ? `<td class="sep">${grandPar}</td>` : ''}</tr>`;
   [0, 1].forEach(t => {
     const capIdx = scrambleTeams[t][0];
@@ -1237,13 +1237,13 @@ function buildScorecardHalf(startH, endH, halfLabel, colLabel, solo = false) {
 
   let thead = `<thead><tr><th class="stk">Hole</th>`;
   for (let h = startH; h < endH; h++)
-    thead += `<th${h===currentHole?' class="mini-cur"':''}>${h+1}</th>`;
+    thead += `<th${h===currentHole?' class="mini-cur"':''}><span class="cn">${h+1}</span></th>`;
   thead += `<th class="sep">${colLabel}</th>`;
   if (isBack) thead += `<th class="sep">Tot</th>`;
   thead += `</tr></thead>`;
 
   let tbody = `<tbody><tr class="par-row"><td class="stk">Par</td>`;
-  par.slice(startH, endH).forEach(p => tbody += `<td>${p}</td>`);
+  par.slice(startH, endH).forEach(p => tbody += `<td><span class="cn">${p}</span></td>`);
   tbody += `<td class="sep">${halfPar}</td>`;
   if (isBack) tbody += `<td class="sep">${grandPar}</td>`;
   tbody += `</tr>`;

@@ -755,9 +755,15 @@ function renderTeeScroll() {
       if (!dragging) return;
       dragging = false;
       const dx = e.changedTouches[0].clientX - sx;
+      const prev = teePage;
       if (dx < -40 && teePage < pages - 1) teePage++;
       else if (dx > 40 && teePage > 0) teePage--;
-      renderTeeScroll();
+      if (teePage !== prev) renderTeeScroll();
+      else {
+        // snap back to current page without re-rendering (preserves click)
+        const track = document.getElementById('tee-track');
+        if (track) { track.style.transition = ''; track.style.transform = `translateX(${-teePage * (100/pages)}%)`; }
+      }
     }, {passive:true});
   }
 }

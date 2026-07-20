@@ -280,7 +280,7 @@ const COURSES = [{
   par: [4,4,5,4,3,5,4,4,3, 4,4,3,5,3,4,4,3,5],
   hcp: [7,1,5,11,15,17,3,9,13, 4,6,16,14,8,18,2,10,12]
 },{
-  name: "Hansen Dam Golf Course",
+  name: "Hansen Dam Golf Club",
   sub:  "Municipal Course",
   location: "Lake View Terrace, California",
   designer: "Ray Goates",
@@ -296,7 +296,7 @@ const COURSES = [{
   par: [4,5,4,3,4,5,3,4,4, 4,4,5,4,5,3,4,3,4],
   hcp: [13,17,3,11,5,7,15,9,1, 10,18,6,4,16,12,14,8,2]
 },{
-  name: "Woodley Lakes Golf Course",
+  name: "Woodley Lakes Golf Club",
   sub:  "Municipal Course",
   location: "Van Nuys, California",
   photo: "Photos/Woodley.png",
@@ -325,7 +325,7 @@ const COURSES = [{
   hcp: [5,9,11,3,15,17,7,1,13, 2,4,18,8,16,12,14,10,6]
 },{
   name: "Scholl Canyon Golf Club",
-  sub:  "Municipal Course",
+  sub:  "Executive Course",
   location: "Glendale, California",
   photo: "Photos/Scholl.png",
   tees: [

@@ -244,6 +244,8 @@ async function transferScorekeeper(uid, name) {
 const COURSES = [{
   name: "Desert Springs Golf Club",
   sub:  "Valley Course",
+  location: "Cathedral City, California",
+  designer: "Unknown",
   tees: [
     { n:"Black", bg:"#111111", fg:"#ffffff", tot:6622, rating:71.9, slope:130,
       yds:[388,355,508,417,390,222,320,185,543,512,401,169,368,415,221,311,494,403] },
@@ -261,6 +263,8 @@ const COURSES = [{
 },{
   name: "Cimarron Golf Resort",
   sub:  "Boulder Course",
+  location: "Cathedral City, California",
+  designer: "John Fought & Todd Schroeder",
   tees: [
     { n:"Cimarron",     bg:"#111111", fg:"#ffffff", tot:6732, rating:72.0, slope:124,
       yds:[390,440,590,347,159,502,449,349,160, 440,413,191,548,218,339,474,169,569] },
@@ -615,9 +619,11 @@ function renderCourses() {
           </div>
           <div class="course-card-chevron">›</div>
         </div>
-      </div>
-      <div class="tee-chips-row">
-        ${c.tees.map(t => `<span class="tee-chip-sm" style="background:${t.bg};color:${t.fg}">${t.n} ${t.tot.toLocaleString()}</span>`).join('')}
+        <div class="course-card-meta">
+          <span class="course-meta-location">${c.location || ''}</span>
+          ${c.designer ? `<span class="course-meta-divider">|</span><span class="course-meta-designer">${c.designer}</span>` : ''}
+          <span class="course-meta-divider">|</span><span class="course-meta-par">Par ${c.par.reduce((a,b)=>a+b,0)}</span>
+        </div>
       </div>
     </div>`).join('');
 }

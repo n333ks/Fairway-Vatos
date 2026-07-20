@@ -891,7 +891,8 @@ function renderPickerUI() {
       </div>
     </div>`;
   } else if (selectedPlayers.length) {
-    extra = `<div class="player-pick-order">${selectedPlayers.map((p,i) => `<span class="pick-slot">${i+1}. ${p.name}</span>`).join('')}</div>`;
+    const pillColors = ['blue','green','orange','purple'];
+    extra = `<div class="player-pick-order">${selectedPlayers.map((p,i) => `<span class="pick-slot pick-slot-${pillColors[i % pillColors.length]}">${p.name}</span>`).join('')}</div>`;
   }
 
   el.innerHTML = `<div class="player-pick-grid">${cards}</div>${extra}`;

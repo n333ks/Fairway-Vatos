@@ -192,14 +192,14 @@ body {
   transition:background 0.15s, border-color 0.15s;
 }
 .player-pick-btn.sel {
-  background:var(--blue-bg); border-color:var(--blue); color:var(--blue);
+  background:var(--bg); border-width:2px;
 }
-.player-pick-btn.team-a-pick { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); }
-.player-pick-btn.team-b-pick { background:var(--green-bg); border-color:var(--green); color:var(--green); }
-.player-pick-btn.pick-color-blue   { background:var(--blue-bg);  border-color:var(--blue);  color:var(--blue); }
-.player-pick-btn.pick-color-green  { background:var(--green-bg); border-color:var(--green); color:var(--green); }
-.player-pick-btn.pick-color-orange { background:#fff3e0; border-color:#e65100; color:#e65100; }
-.player-pick-btn.pick-color-purple { background:#f3e5f5; border-color:#7b1fa2; color:#7b1fa2; }
+.player-pick-btn.team-a-pick { background:var(--bg); border-color:var(--blue); color:var(--blue); }
+.player-pick-btn.team-b-pick { background:var(--bg); border-color:var(--green); color:var(--green); }
+.player-pick-btn.pick-color-blue   { background:var(--bg); border-color:var(--blue);  color:var(--blue); }
+.player-pick-btn.pick-color-green  { background:var(--bg); border-color:var(--green); color:var(--green); }
+.player-pick-btn.pick-color-orange { background:var(--bg); border-color:#e65100; color:#e65100; }
+.player-pick-btn.pick-color-purple { background:var(--bg); border-color:#7b1fa2; color:#7b1fa2; }
 .scramble-teams-inline {
   display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:8px 16px 12px;
 }

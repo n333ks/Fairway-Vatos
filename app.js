@@ -2702,11 +2702,9 @@ function renderHomeRecent() {
       document.getElementById('login-name').value     = '';
       document.getElementById('login-password').value = '';
       document.getElementById('login-error').textContent = '';
+      document.getElementById('login-name').setAttribute('readonly', '');
+      document.getElementById('login-password').setAttribute('readonly', '');
       show('sc-login');
-      setTimeout(() => {
-        document.getElementById('login-name')?.blur();
-        document.getElementById('login-password')?.blur();
-      }, 100);
     }
   });
 })();

@@ -24,10 +24,12 @@
 
     <div class="login-card" id="login-fields">
       <input class="login-input" id="login-name" type="text" placeholder="First name"
-             autocomplete="username" autocorrect="off" autocapitalize="words">
+             autocomplete="username" autocorrect="off" autocapitalize="words" readonly
+             onfocus="this.removeAttribute('readonly')">
       <div class="login-divider"></div>
       <input class="login-input" id="login-password" type="password" placeholder="Password"
-             autocomplete="current-password">
+             autocomplete="current-password" readonly
+             onfocus="this.removeAttribute('readonly')">
     </div>
     <div class="login-error" id="login-error"></div>
 

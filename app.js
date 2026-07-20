@@ -244,8 +244,8 @@ async function transferScorekeeper(uid, name) {
 const COURSES = [{
   name: "Desert Springs Golf Club",
   sub:  "Valley Course",
-  location: "Cathedral City, California",
-  designer: "Unknown",
+  location: "Palm Desert, California",
+  designer: "Ted Robinson Sr.",
   tees: [
     { n:"Black", bg:"#111111", fg:"#ffffff", tot:6622, rating:71.9, slope:130,
       yds:[388,355,508,417,390,222,320,185,543,512,401,169,368,415,221,311,494,403] },

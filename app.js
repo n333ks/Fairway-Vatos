@@ -1387,6 +1387,7 @@ function renderTotals() {
       <div class="money-amt ${cls}">${disp}</div>
     </div>`;
   }).join('');
+  renderPayouts(players, money, 'payouts-list');
 
   function buildTotalsHalf(startH, endH, halfLabel, colLabel) {
     return buildScorecardHalf(startH, endH, halfLabel, colLabel);
@@ -1520,6 +1521,42 @@ function renderTotals() {
 
   document.getElementById('hole-results').innerHTML = hr ||
     '<div class="hr-row"><span style="color:var(--tx2);font-size:14px">No holes entered yet</span></div>';
+}
+
+function simplifyDebts(players, money) {
+  // Build net balances rounded to cents
+  const bal = money.map(m => Math.round(m * 100));
+  const txns = [];
+  const debtors  = players.map((p, i) => ({p, i, v: bal[i]})).filter(x => x.v < 0).sort((a,b) => a.v - b.v);
+  const creditors = players.map((p, i) => ({p, i, v: bal[i]})).filter(x => x.v > 0).sort((a,b) => b.v - a.v);
+  let di = 0, ci = 0;
+  while (di < debtors.length && ci < creditors.length) {
+    const d = debtors[di], c = creditors[ci];
+    const amt = Math.min(-d.v, c.v);
+    if (amt > 0) txns.push({from: d.p, to: c.p, amt: amt / 100});
+    d.v += amt; c.v -= amt;
+    if (d.v === 0) di++;
+    if (c.v === 0) ci++;
+  }
+  return txns;
+}
+
+function renderPayouts(players, money, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const txns = simplifyDebts(players, money);
+  if (!txns.length) {
+    el.innerHTML = `<div class="payout-row"><span class="payout-even">Everyone's even — no payments needed</span></div>`;
+    return;
+  }
+  el.innerHTML = txns.map(t =>
+    `<div class="payout-row">
+      <span class="payout-from">${shortName(t.from)}</span>
+      <span class="payout-arrow">→</span>
+      <span class="payout-to">${shortName(t.to)}</span>
+      <span class="payout-amt">$${t.amt.toFixed(2)}</span>
+    </div>`
+  ).join('');
 }
 
 function fmtCell(s, par, hlCls = '') {
@@ -1698,6 +1735,21 @@ function viewRound(id) {
     </div>`;
   });
   html += '</div>';
+
+  // Payouts
+  const payoutTxns = simplifyDebts(r.players, money);
+  if (!payoutTxns.length) {
+    html += `<div class="totals-section-title">Payouts</div><div class="payout-row"><span class="payout-even">Everyone's even — no payments needed</span></div>`;
+  } else {
+    html += `<div class="totals-section-title">Payouts</div>` + payoutTxns.map(t =>
+      `<div class="payout-row">
+        <span class="payout-from">${shortName(t.from)}</span>
+        <span class="payout-arrow">→</span>
+        <span class="payout-to">${shortName(t.to)}</span>
+        <span class="payout-amt">$${t.amt.toFixed(2)}</span>
+      </div>`
+    ).join('');
+  }
 
   // Scorecard — use same buildScorecardHalf as live round by temporarily setting globals
   const _cIdx = cIdx, _tIdx = tIdx, _players = players, _scores = scores,

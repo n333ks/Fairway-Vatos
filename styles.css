@@ -916,6 +916,21 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   padding:20px 16px 0; color:var(--tx);
 }
 
+/* ── payouts ── */
+.payout-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 0.5px solid var(--sep2);
+}
+.payout-row:last-child { border-bottom: none; }
+.payout-from { font-size: 15px; font-weight: 600; color: var(--red); flex: 1; }
+.payout-arrow { font-size: 14px; color: var(--tx3); }
+.payout-to   { font-size: 15px; font-weight: 600; color: var(--green); flex: 1; }
+.payout-amt  { font-size: 17px; font-weight: 700; color: var(--tx); min-width: 60px; text-align: right; }
+.payout-even { font-size: 14px; color: var(--tx2); padding: 10px 0; }
+
 /* ── history cards ── */
 .history-card {
   background: var(--bg2);

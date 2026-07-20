@@ -890,11 +890,9 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   flex-shrink: 0;
   overflow: hidden;
 }
-/* when rendered standalone (9-hole or history single half), fill full width */
-#sc-table > .totals-sc-half,
-#history-detail-body .totals-sc-half:only-child {
-  width: 100%;
-}
+/* standalone single-half wrapper (9-hole rounds) */
+.totals-sc-solo { width: 100%; }
+.totals-sc-solo .totals-sc-half { width: 100%; }
 /* inside the totals swipe, tables fill width with fixed layout — no inner scroll */
 .totals-sc-half .sc-wrap {
   overflow-x: hidden;

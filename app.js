@@ -1653,7 +1653,7 @@ function renderTotals() {
     const startH = nineChoice === 'back' ? 9 : 0;
     const endH   = nineChoice === 'back' ? 18 : 9;
     const label  = nineChoice === 'back' ? 'Back Nine' : 'Front Nine';
-    document.getElementById('sc-table').innerHTML = buildTotalsHalf(startH, endH, label, 'Total');
+    document.getElementById('sc-table').innerHTML = `<div class="totals-sc-solo">${buildTotalsHalf(startH, endH, label, 'Total')}</div>`;
   } else {
     const offset = scPage === 0 ? '0%' : '-50%';
     document.getElementById('sc-table').innerHTML = `
@@ -1947,6 +1947,7 @@ function deleteRound(id, e) {
   if (currentUser) {
     db.collection('users').doc(currentUser.uid).collection('rounds').doc(String(id)).delete();
   }
+  renderHomeRecent();
   showHistory();
 }
 
@@ -2078,7 +2079,7 @@ function viewRound(id) {
     const startH = nineChoice === 'back' ? 9 : 0;
     const endH   = nineChoice === 'back' ? 18 : 9;
     const label  = nineChoice === 'back' ? 'Back Nine' : 'Front Nine';
-    scHtml = buildScorecardHalf(startH, endH, label, 'Total');
+    scHtml = `<div class="totals-sc-solo">${buildScorecardHalf(startH, endH, label, 'Total')}</div>`;
   } else {
     const scFront = buildScorecardHalf(0, 9, 'Front Nine', 'Out');
     const scBack  = buildScorecardHalf(9, 18, 'Back Nine', 'In');

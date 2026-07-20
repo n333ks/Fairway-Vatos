@@ -2445,6 +2445,16 @@ function renderHomeRecent() {
     });
   });
 
+  // Auto-submit when Safari autofills both fields
+  const pwdInput = document.getElementById('login-password');
+  if (pwdInput) {
+    pwdInput.addEventListener('change', () => {
+      const name = document.getElementById('login-name').value.trim();
+      const pwd  = pwdInput.value;
+      if (name && pwd && loginMode === 'signin') submitLogin();
+    });
+  }
+
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {

@@ -1956,7 +1956,7 @@ function renderTotals() {
       ? `+$${(stake * puttOff.pot * 2 * (gameType==='scramble'?scrambleTeams[puttOff.winnerTeam===0?1:0].length:players.length-1)).toFixed(2)}`
       : myLost ? `−$${puttAmt}` : `$${puttAmt}`;
     hr = `<div class="hr-row hr-row--puttoff">
-      <span class="hr-num">⛳ Putt-Off</span>
+      <span class="hr-num">P-O</span>
       <span class="hr-teams">🏆 ${puttWinner}</span>
       <span class="hr-badge win">Win</span>
       <span class="hr-money ${myWon?'pos':myLost?'neg':''}">${puttMoneyStr}</span>
@@ -2446,7 +2446,7 @@ function viewRound(id, backTo = 'sc-history') {
       ? `+$${(rStake * rpo.pot * 2 * (r.gameType==='scramble'?(r.scrambleTeams||[[],[]])[rpo.winnerTeam===0?1:0].length:r.players.length-1)).toFixed(2)}`
       : rMyLost ? `−$${puttAmt}` : `$${puttAmt}`;
     hrHtml = `<div class="hr-row hr-row--puttoff">
-      <span class="hr-num">⛳ Putt-Off</span>
+      <span class="hr-num">P-O</span>
       <span class="hr-teams">🏆 ${puttWinner}</span>
       <span class="hr-badge win">Win</span>
       <span class="hr-money ${rMyWon?'pos':rMyLost?'neg':''}">${rPuttMoney}</span>

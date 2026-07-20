@@ -471,7 +471,7 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 }
 .hr-row:last-child { border-bottom:none }
 .hr-row--puttoff { background:var(--green-bg); }
-.hr-row--puttoff .hr-num { color:var(--green); font-weight:600; min-width:72px; }
+.hr-row--puttoff .hr-num { color:var(--green); font-weight:600; }
 .hr-num   { color:var(--tx2); font-size:13px; min-width:40px; flex-shrink:0 }
 .hr-teams { flex:1; color:var(--tx); font-size:13px }
 .hr-badge {

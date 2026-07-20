@@ -878,8 +878,8 @@ function renderPickerUI() {
   // Scramble: show team name inputs + rosters inline
   let extra = '';
   if (gameType === 'scramble') {
-    const t1 = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 0).map(p => p.name).join(', ');
-    const t2 = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 1).map(p => p.name).join(', ');
+    const t1 = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 0).map(p => p.name).join(' - ');
+    const t2 = selectedPlayers.filter((_, i) => scrambleTeamAssign[i] === 1).map(p => p.name).join(' - ');
     extra = `<div class="scramble-teams-inline">
       <div class="sti-team team-a-pick">
         <input class="team-name-input a" value="${scrambleTeamNames[0]}" oninput="setTeamName(0,this.value)" placeholder="Team 1">

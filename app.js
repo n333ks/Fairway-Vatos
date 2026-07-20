@@ -1888,7 +1888,7 @@ function saveRound() {
     if (holeCount === 9 || completed.length >= 18) return completed;
     return completed.slice(0, 9);
   })();
-  const scoreDiffs = (t.rating != null && hdcpHoles.length >= 9)
+  const scoreDiffs = (gameType !== 'scramble' && t.rating != null && hdcpHoles.length >= 9)
     ? players.map((_, p) => {
         const gross = hdcpHoles.reduce((sum, h) => sum + (scores[h][p] || 0), 0);
         const adjRating = hdcpHoles.length === 9 ? t.rating / 2 : t.rating;

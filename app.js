@@ -248,6 +248,7 @@ const COURSES = [{
   location: "Palm Desert, California",
   designer: "Ted Robinson Sr.",
   photo: "Photos/DSGR.png",
+  lat: 33.7355, lng: -116.3692,
   tees: [
     { n:"Black", bg:"#111111", fg:"#ffffff", tot:6622, rating:71.9, slope:130,
       yds:[388,355,508,417,390,222,320,185,543,512,401,169,368,415,221,311,494,403] },
@@ -268,6 +269,7 @@ const COURSES = [{
   location: "Cathedral City, California",
   designer: "John Fought & Todd Schroeder",
   photo: "Photos/Cimarron.png",
+  lat: 33.8005, lng: -116.4782,
   tees: [
     { n:"Cimarron",     bg:"#111111", fg:"#ffffff", tot:6732, rating:72.0, slope:124,
       yds:[390,440,590,347,159,502,449,349,160, 440,413,191,548,218,339,474,169,569] },
@@ -286,6 +288,7 @@ const COURSES = [{
   location: "Lake View Terrace, California",
   designer: "Ray Goates",
   photo: "Photos/Hansen.png",
+  lat: 34.2725, lng: -118.3617,
   tees: [
     { n:"Black", bg:"#111111", fg:"#ffffff", tot:6801, rating:72.1, slope:124,
       yds:[385,505,404,192,426,567,193,390,450, 307,340,549,430,518,167,362,179,437] },
@@ -301,6 +304,7 @@ const COURSES = [{
   sub:  "Municipal Course",
   location: "Van Nuys, California",
   photo: "Photos/Woodley.png",
+  lat: 34.1944, lng: -118.4897,
   tees: [
     { n:"Black", bg:"#111111", fg:"#ffffff", tot:6816, rating:71.8, slope:120,
       yds:[371,332,219,533,391,386,167,500,449, 453,331,166,513,395,192,428,441,549] },
@@ -316,6 +320,7 @@ const COURSES = [{
   sub:  "Municipal Course",
   location: "Burbank, California",
   photo: "Photos/DeBell.png",
+  lat: 34.2048, lng: -118.3303,
   tees: [
     { n:"Blue",  bg:"#1d4ed8", fg:"#ffffff", tot:5608, rating:69.0, slope:120,
       yds:[457,293,278,302,244,124,232,499,253, 396,443,181,491,201,330,289,210,385] },
@@ -329,6 +334,7 @@ const COURSES = [{
   sub:  "Executive Course",
   location: "Glendale, California",
   photo: "Photos/Scholl.png",
+  lat: 34.1859, lng: -118.2329,
   tees: [
     { n:"Blue", bg:"#1d4ed8", fg:"#ffffff", tot:3039, rating:54.8, slope:86,
       yds:[259,103,324,122,167,127,83,140,262, 253,89,145,289,108,252,87,125,104] },
@@ -667,8 +673,14 @@ function nextHole() {
 /* ════════════════════════════════
    SCREEN 1 — COURSE SELECT
 ════════════════════════════════ */
-function renderCourses() {
-  document.getElementById('course-list').innerHTML = COURSES.map((c, i) => `
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function buildCourseList(sorted) {
+  document.getElementById('course-list').innerHTML = sorted.map(({c, i, distMi}) => `
     <div class="course-card${c.photo ? ' course-card-photo' : ''}" onclick="selectCourse(${i})"
          ${c.photo ? `style="background-image:url('${c.photo}')"` : ''}>
       <div class="course-card-inner${c.photo ? ' course-card-inner-overlay' : ''}">
@@ -680,10 +692,27 @@ function renderCourses() {
           <div class="course-card-chevron">›</div>
         </div>
         <div class="course-card-meta">
-          <span class="course-meta-location">${c.location || ''}</span>
+          <span class="course-meta-location">${distMi != null ? `${distMi} mi · ` : ''}${c.location || ''}</span>
         </div>
       </div>
     </div>`).join('');
+}
+
+function renderCourses() {
+  const indexed = COURSES.map((c, i) => ({c, i, distMi: null}));
+  buildCourseList(indexed);
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(pos => {
+    const {latitude, longitude} = pos.coords;
+    indexed.forEach(entry => {
+      if (entry.c.lat != null) {
+        const km = haversineKm(latitude, longitude, entry.c.lat, entry.c.lng);
+        entry.distMi = (km * 0.621371).toFixed(1);
+      }
+    });
+    indexed.sort((a, b) => (a.distMi != null ? parseFloat(a.distMi) : Infinity) - (b.distMi != null ? parseFloat(b.distMi) : Infinity));
+    buildCourseList(indexed);
+  }, () => {});
 }
 
 function selectCourse(i) {

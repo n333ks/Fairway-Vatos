@@ -34,7 +34,7 @@ function toggleLoginMode() {
 }
 
 function submitLogin() {
-  const name = document.getElementById('login-name').value.trim();
+  const name = document.getElementById('login-name').value.trim().split(/\s+/)[0];
   const pass = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-error');
   errEl.textContent = '';
@@ -2219,8 +2219,10 @@ function renderHomeRecent() {
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
-      const displayName = user.displayName || user.email.split('@')[0];
-      // Register in users collection so others can pick us in round setup
+      const rawName = user.displayName || user.email.split('@')[0];
+      const displayName = rawName.trim().split(/\s+/)[0];
+      // Trim to first name and register in users collection
+      if (displayName !== rawName) user.updateProfile({ displayName });
       db.collection('users').doc(user.uid).set({ name: displayName, uid: user.uid }, { merge: true });
       const signoutBtn = document.getElementById('home-signout');
       if (signoutBtn) signoutBtn.title = `Signed in as ${displayName}`;

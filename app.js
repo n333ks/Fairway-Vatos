@@ -246,6 +246,7 @@ const COURSES = [{
   sub:  "Valley Course",
   location: "Palm Desert, California",
   designer: "Ted Robinson Sr.",
+  photo: "Photos/DSGR.png",
   tees: [
     { n:"Black", bg:"#111111", fg:"#ffffff", tot:6622, rating:71.9, slope:130,
       yds:[388,355,508,417,390,222,320,185,543,512,401,169,368,415,221,311,494,403] },
@@ -610,8 +611,9 @@ function nextHole() {
 ════════════════════════════════ */
 function renderCourses() {
   document.getElementById('course-list').innerHTML = COURSES.map((c, i) => `
-    <div class="course-card" onclick="selectCourse(${i})">
-      <div class="course-card-inner">
+    <div class="course-card${c.photo ? ' course-card-photo' : ''}" onclick="selectCourse(${i})"
+         ${c.photo ? `style="background-image:url('${c.photo}')"` : ''}>
+      <div class="course-card-inner${c.photo ? ' course-card-inner-overlay' : ''}">
         <div class="course-card-row">
           <div>
             <div class="course-card-name">${c.name}</div>

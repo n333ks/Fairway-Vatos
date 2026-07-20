@@ -712,41 +712,52 @@ function renderTeeScroll() {
   const tees = c.tees;
   const pageSize = 3;
   const pages = Math.ceil(tees.length / pageSize);
-  // Keep teePage in bounds
   teePage = Math.min(teePage, pages - 1);
-  const start = teePage * pageSize;
-  const slice = tees.slice(start, start + pageSize);
 
-  const btns = slice.map((t, si) => {
-    const i = start + si;
-    return `<button class="tee-option${i === tIdx ? ' sel' : ''}" style="background:${t.bg};color:${t.fg}" onclick="selTee(${i})">
-      ${t.n}<span>${t.tot.toLocaleString()} yds</span>
-      ${t.rating != null ? `<span class="tee-rating">${t.rating} / ${t.slope}</span>` : ''}
-    </button>`;
+  const pageSlots = Array.from({length: pages}, (_, p) => {
+    const slice = tees.slice(p * pageSize, p * pageSize + pageSize);
+    const btns = slice.map((t, si) => {
+      const i = p * pageSize + si;
+      return `<button class="tee-option${i === tIdx ? ' sel' : ''}" style="background:${t.bg};color:${t.fg}" onclick="selTee(${i})">
+        ${t.n}<span>${t.tot.toLocaleString()} yds</span>
+        ${t.rating != null ? `<span class="tee-rating">${t.rating} / ${t.slope}</span>` : ''}
+      </button>`;
+    }).join('');
+    return `<div class="tee-page" style="width:${100/pages}%">${btns}</div>`;
   }).join('');
 
   const dots = pages > 1 ? `<div class="tee-dots">
-    ${Array.from({length:pages}, (_, p) =>
-      `<span class="tee-dot${p === teePage ? ' on' : ''}" onclick="goTeePage(${p})"></span>`
+    ${Array.from({length: pages}, (_, p) =>
+      `<span class="tee-dot${p === teePage ? ' on' : ''}"></span>`
     ).join('')}
   </div>` : '';
 
   document.getElementById('tee-scroll').innerHTML =
-    `<div class="tee-page">${btns}</div>${dots}`;
+    `<div class="tee-viewport"><div class="tee-track" id="tee-track" style="width:${pages * 100}%;transform:translateX(${-teePage * (100/pages)}%)">${pageSlots}</div></div>${dots}`;
 
-  // Swipe support
-  const pg = document.querySelector('#tee-scroll .tee-page');
-  if (pg && pages > 1) {
-    let sx = null;
-    pg.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, {passive:true});
-    pg.addEventListener('touchend', e => {
-      if (sx === null) return;
+  if (pages > 1) {
+    const vp = document.querySelector('#tee-scroll .tee-viewport');
+    let sx = null, dragging = false, startTx = 0;
+    vp.addEventListener('touchstart', e => {
+      sx = e.touches[0].clientX;
+      startTx = -teePage * (100 / pages);
+      dragging = true;
+    }, {passive:true});
+    vp.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      const dx = e.touches[0].clientX - sx;
+      const pct = (dx / vp.offsetWidth) * (100 / pages);
+      const track = document.getElementById('tee-track');
+      if (track) track.style.transition = 'none';
+      if (track) track.style.transform = `translateX(${startTx + pct}%)`;
+    }, {passive:true});
+    vp.addEventListener('touchend', e => {
+      if (!dragging) return;
+      dragging = false;
       const dx = e.changedTouches[0].clientX - sx;
-      if (Math.abs(dx) > 40) {
-        if (dx < 0 && teePage < pages - 1) goTeePage(teePage + 1);
-        else if (dx > 0 && teePage > 0) goTeePage(teePage - 1);
-      }
-      sx = null;
+      if (dx < -40 && teePage < pages - 1) teePage++;
+      else if (dx > 40 && teePage > 0) teePage--;
+      renderTeeScroll();
     }, {passive:true});
   }
 }

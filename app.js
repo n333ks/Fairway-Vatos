@@ -1978,23 +1978,22 @@ async function showHistory() {
   show('sc-history');
   const el = document.getElementById('history-list');
 
+  // Show cached data immediately — no loading spinner
+  const cached = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
+  if (cached.length) renderHistoryList(cached);
+  else el.innerHTML = `<div class="history-empty" style="padding-top:48px">Loading…</div>`;
+
+  // Refresh from Firestore in the background
   if (currentUser) {
-    el.innerHTML = `<div class="history-empty" style="padding-top:48px">Loading…</div>`;
     try {
       const snap = await db.collection('users').doc(currentUser.uid)
         .collection('rounds').orderBy('date', 'desc').get();
       const hist = snap.docs.map(d => roundFromFS(d.data()));
-      // Refresh localStorage cache so viewRound, handicap, leaderboard work
       localStorage.setItem('hog_rounds', JSON.stringify(hist));
       renderHistoryList(hist);
     } catch(err) {
-      // Fall back to local cache on network error
-      const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
-      renderHistoryList(hist);
+      if (!cached.length) renderHistoryList([]);
     }
-  } else {
-    const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
-    renderHistoryList(hist);
   }
 }
 

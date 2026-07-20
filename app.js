@@ -1295,6 +1295,14 @@ function renderMiniScorecard() {
   const el = document.getElementById('mini-sc');
   if (!el) return;
 
+  if (holeCount === 9) {
+    const startH = nineChoice === 'back' ? 9 : 0;
+    const endH   = nineChoice === 'back' ? 18 : 9;
+    const label  = nineChoice === 'back' ? 'Back Nine' : 'Front Nine';
+    const colLbl = nineChoice === 'back' ? 'In' : 'Out';
+    el.innerHTML = `<div class="totals-sc-solo">${buildScorecardHalf(startH, endH, label, colLbl, true)}</div>`;
+    return;
+  }
   const offset = scorecardPage === 0 ? '0%' : '-50%';
   el.innerHTML = `
     <div class="totals-sc-viewport">

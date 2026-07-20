@@ -22,14 +22,15 @@
     <img src="icon.png" alt="Fairway Vatos" class="login-logo">
     <div class="login-subtitle" id="login-subtitle">Sign in to continue</div>
 
+    <!-- iOS auto-focuses the first input; this invisible trap absorbs it -->
+    <input type="text" aria-hidden="true" tabindex="-1"
+           style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
     <div class="login-card" id="login-fields">
       <input class="login-input" id="login-name" type="text" placeholder="First name"
-             autocomplete="username" autocorrect="off" autocapitalize="words" readonly
-             onfocus="this.removeAttribute('readonly')">
+             autocomplete="username" autocorrect="off" autocapitalize="words">
       <div class="login-divider"></div>
       <input class="login-input" id="login-password" type="password" placeholder="Password"
-             autocomplete="current-password" readonly
-             onfocus="this.removeAttribute('readonly')">
+             autocomplete="current-password">
     </div>
     <div class="login-error" id="login-error"></div>
 

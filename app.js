@@ -1536,9 +1536,13 @@ function renderHoleBodyScramble(h, ch) {
   if (touched[h][a0] && touched[h][b0]) {
     let txt = 'Enter scores above', cls = 'rb-pending';
     const nextH = h + 2;
+    const puttAmt = (stake * ch.n * 2).toFixed(2);
     if (r === 'win')  { txt = `${tA} wins · +$${s} each`; cls = 'rb-win'; }
     else if (r === 'lose') { txt = `${tB} wins · +$${s} each`; cls = 'rb-win'; }
-    else if (r === 'tie')  { txt = `Tied · $${ns}/player carries to hole ${nextH}`; cls = 'rb-tie'; }
+    else if (r === 'tie')  {
+      txt = h === lastHole() ? `Tied · $${puttAmt}/team — Putt-Off` : `Tied · $${ns}/team carries to hole ${nextH}`;
+      cls = 'rb-tie';
+    }
     html += `<div class="result-banner ${cls}">${txt}</div>`;
   }
   el.innerHTML = html;
@@ -1562,7 +1566,9 @@ function renderHoleBodyStroke(h, pot) {
       const winAmt = (stake * pot * (players.length - 1)).toFixed(2);
       txt = `🏆 ${shortName(players[wIdxs[0]])} wins skin · +$${winAmt}`; cls = 'rb-win';
     } else {
-      txt = `Tied — $${ns}/skin carries to hole ${h + 2}`; cls = 'rb-tie';
+      const puttSkinAmt = (stake * pot * 2).toFixed(2);
+      txt = h === lastHole() ? `Tied · $${puttSkinAmt}/player — Putt-Off` : `Tied — $${ns}/skin carries to hole ${h + 2}`;
+      cls = 'rb-tie';
     }
     html += `<div class="result-banner ${cls}">${txt}</div>`;
   }
@@ -1662,18 +1668,25 @@ function renderHoleBody(h, ch) {
     let txt   = '', cls = 'rb-pending';
     const nextH = h + 2;
 
+    const puttHogAmt = (stake * ch.n * 2).toFixed(2);
     if (tp === 'hog') {
       const hogWin = (stake * ch.n * 3).toFixed(2);
       if      (r === 'win')  { txt = `🐷 ${shortName(players[fi])} wins · +$${hogWin}`; cls = 'rb-win'; }
       else if (r === 'lose') { txt = `🐷 ${shortName(players[fi])} loses · −$${hogWin}`; cls = 'rb-lose'; }
-      else if (r === 'tie')  { txt = `Tied · $${ns}/player carries to hole ${nextH}`; cls = 'rb-tie'; }
+      else if (r === 'tie')  {
+        txt = h === lastHole() ? `Tied · $${puttHogAmt}/player — Putt-Off` : `Tied · $${ns}/player carries to hole ${nextH}`;
+        cls = 'rb-tie';
+      }
       else                   { txt = 'Enter scores above'; }
     } else {
       const aName = `${shortName(players[fi])} + ${shortName(players[pi])}`;
       const bName = teamBNames(o, fi, pi);
       if      (r === 'win')  { txt = `${aName} win · +$${s} each`; cls = 'rb-win'; }
       else if (r === 'lose') { txt = `${bName} win · +$${s} each`; cls = 'rb-lose'; }
-      else if (r === 'tie')  { txt = `Tied · $${ns}/player carries to hole ${nextH}`; cls = 'rb-tie'; }
+      else if (r === 'tie')  {
+        txt = h === lastHole() ? `Tied · $${puttHogAmt}/player — Putt-Off` : `Tied · $${ns}/player carries to hole ${nextH}`;
+        cls = 'rb-tie';
+      }
       else                   { txt = 'Enter scores above'; }
     }
     html += `<div class="result-banner ${cls}">${txt}</div>`;

@@ -1646,6 +1646,7 @@ function renderTotals() {
       const r = holes[h].result, ch = chains[h];
       const s = (stake * ch.n).toFixed(2);
       if (!r) {
+        if (h !== currentHole && !touched[h].some(t => t)) continue;
         hr += `<div class="hr-row hr-row--inprogress"><span class="hr-num">H${h+1}${ch.n>1?' ×'+ch.n:''}</span><span class="hr-inprogress">⛳ In Progress</span></div>`;
         continue;
       }
@@ -1668,6 +1669,7 @@ function renderTotals() {
     for (let i = skins.length - 1; i >= 0; i--) {
       const {h, pending, tied, winner, n} = skins[i];
       if (pending) {
+        if (h !== currentHole && !touched[h].some(t => t)) continue;
         hr += `<div class="hr-row hr-row--inprogress"><span class="hr-num">H${h+1}${n>1?' ×'+n:''}</span><span class="hr-inprogress">⛳ In Progress</span></div>`;
         continue;
       }
@@ -1716,6 +1718,7 @@ function renderTotals() {
       if (myResult==='lose') moneyStr = tp==='hog'?(myIdx===fi?`−$${(stake*ch.n*3).toFixed(2)}`:`−$${s}`):`−$${s}`;
       if (myResult==='tie')  moneyStr = '→ next';
       if (!r) {
+        if (h !== currentHole && !touched[h].some(t => t)) continue;
         hr += `<div class="hr-row hr-row--inprogress"><span class="hr-num">H${h+1}${ch.n>1?' ×'+ch.n:''}</span><span class="hr-inprogress">⛳ Hole in Progress</span></div>`;
         continue;
       }

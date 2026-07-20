@@ -1829,9 +1829,12 @@ function fmtCell(s, par, hlCls = '') {
 ════════════════════════════════ */
 function roundToFS(r) {
   const obj = {...r};
-  // Firestore doesn't allow nested arrays — serialize scores as keyed object
+  // Firestore doesn't allow nested arrays — serialize as keyed objects
   obj.scores = {};
   r.scores.forEach((hole, h) => { obj.scores[h] = [...hole]; });
+  if (r.scrambleTeams) {
+    obj.scrambleTeams = { t0: [...r.scrambleTeams[0]], t1: [...r.scrambleTeams[1]] };
+  }
   return obj;
 }
 
@@ -1839,6 +1842,9 @@ function roundFromFS(obj) {
   const r = {...obj};
   const s = obj.scores || {};
   r.scores = Array.from({length: 18}, (_, h) => s[h] || []);
+  if (obj.scrambleTeams && obj.scrambleTeams.t0 !== undefined) {
+    r.scrambleTeams = [obj.scrambleTeams.t0, obj.scrambleTeams.t1];
+  }
   return r;
 }
 

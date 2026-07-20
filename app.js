@@ -2125,52 +2125,82 @@ function viewRound(id) {
     : Array.from({length:18},(_,i)=>i);
   let anyResult = false;
   let hrHtml = '';
-  for (let ri = rActiveHoles.length - 1; ri >= 0; ri--) {
-    const h = rActiveHoles[ri];
-    const hole=r.holes[h], ch=rChains[h];
-    const tp=ch.carry?ch.t:hole.type;
-    if (!tp) continue;
-    anyResult = true;
-    const ordR = bh => rPlayers.map((_,i)=>(i+bh)%rPlayers.length);
-    const o=ordR(ch.betHole);
-    const fi=ch.carry?ch.f:o[0];
-    const pi=ch.carry?ch.p:(hole.partner!==null?hole.partner:o[1]);
-    const s=(r.stake*ch.n).toFixed(2);
-    const re=hole.result;
 
-    // Perspective-based result
-    let myResult = re;
-    if (re && myIdxR >= 0) {
-      if (tp === 'hog') {
-        if (myIdxR !== fi) myResult = re === 'win' ? 'lose' : re === 'lose' ? 'win' : re;
-      } else {
-        const onTeamB = myIdxR !== fi && myIdxR !== pi;
-        if (onTeamB) myResult = re === 'win' ? 'lose' : re === 'lose' ? 'win' : re;
-      }
+  if (r.gameType === 'scramble') {
+    const rTeams = r.scrambleTeams || [[], []];
+    const aName  = (r.scrambleTeamNames || [])[0] || 'Team A';
+    const bName  = (r.scrambleTeamNames || [])[1] || 'Team B';
+    const myTeam = myIdxR >= 0 ? rTeams.findIndex(t => t.includes(myIdxR)) : -1;
+    // build scramble carry chains
+    const schains = Array.from({length:18}, () => ({n:1}));
+    let pot = 1;
+    for (const h of rActiveHoles) {
+      schains[h].n = pot;
+      if (r.holes[h].result === 'tie') pot++; else pot = 1;
     }
-
-    const t1n=`${shortName(rPlayers[fi])} + ${shortName(rPlayers[pi])}`;
-    const t2n=o.filter(i=>i!==fi&&i!==pi).map(i=>shortName(rPlayers[i])).join(' + ');
-    let teams;
-    if(re==='tie'){teams=`🔄 Carryover`;}
-    else if(tp==='hog'){teams=`🐷 ${shortName(rPlayers[fi])}`;}
-    else if(re==='win'){teams=`🏆 ${t1n}`;}
-    else if(re==='lose'){teams=`🏆 ${t2n}`;}
-    else{teams=`${t1n} vs ${t2n}`;}
-
-    const badge=myResult==='win'?'win':myResult==='lose'?'lose':myResult==='tie'?'tie':'pend';
-    const label=myResult==='win'?'Win':myResult==='lose'?'Lose':myResult==='tie'?'Tie':'—';
-    let moneyStr='—';
-    if(myResult==='win')  moneyStr=tp==='hog'?(myIdxR===fi?`+$${(r.stake*ch.n*3).toFixed(2)}`:`+$${s}`):`+$${s}`;
-    if(myResult==='lose') moneyStr=tp==='hog'?(myIdxR===fi?`−$${(r.stake*ch.n*3).toFixed(2)}`:`−$${s}`):`−$${s}`;
-    if(myResult==='tie')  moneyStr='→ next';
-
-    hrHtml += `<div class="hr-row">
-      <span class="hr-num">H${h+1}${ch.n>1?' ×'+ch.n:''}</span>
-      <span class="hr-teams">${teams}</span>
-      <span class="hr-badge ${badge}">${label}</span>
-      <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
-    </div>`;
+    for (let ri = rActiveHoles.length - 1; ri >= 0; ri--) {
+      const h = rActiveHoles[ri];
+      const re = r.holes[h].result;
+      if (!re) continue;
+      anyResult = true;
+      const n = schains[h].n;
+      const s = (r.stake * n).toFixed(2);
+      let myResult = re === 'tie' ? 'tie' : re;
+      if (myTeam === 1) myResult = re === 'win' ? 'lose' : re === 'lose' ? 'win' : re;
+      const teams = re === 'tie' ? '🔄 Carryover' : re === 'win' ? `🏆 ${aName}` : `🏆 ${bName}`;
+      const badge = myResult==='win'?'win':myResult==='lose'?'lose':myResult==='tie'?'tie':'pend';
+      const label = myResult==='win'?'Win':myResult==='lose'?'Lose':myResult==='tie'?'Tie':'—';
+      const moneyStr = re==='tie'?'→ next':myResult==='win'?`+$${s}`:`−$${s}`;
+      hrHtml += `<div class="hr-row">
+        <span class="hr-num">H${h+1}${n>1?' ×'+n:''}</span>
+        <span class="hr-teams">${teams}</span>
+        <span class="hr-badge ${badge}">${label}</span>
+        <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
+      </div>`;
+    }
+  } else {
+    for (let ri = rActiveHoles.length - 1; ri >= 0; ri--) {
+      const h = rActiveHoles[ri];
+      const hole=r.holes[h], ch=rChains[h];
+      const tp=ch.carry?ch.t:hole.type;
+      if (!tp) continue;
+      anyResult = true;
+      const ordR = bh => rPlayers.map((_,i)=>(i+bh)%rPlayers.length);
+      const o=ordR(ch.betHole);
+      const fi=ch.carry?ch.f:o[0];
+      const pi=ch.carry?ch.p:(hole.partner!==null?hole.partner:o[1]);
+      const s=(r.stake*ch.n).toFixed(2);
+      const re=hole.result;
+      let myResult = re;
+      if (re && myIdxR >= 0) {
+        if (tp === 'hog') {
+          if (myIdxR !== fi) myResult = re === 'win' ? 'lose' : re === 'lose' ? 'win' : re;
+        } else {
+          const onTeamB = myIdxR !== fi && myIdxR !== pi;
+          if (onTeamB) myResult = re === 'win' ? 'lose' : re === 'lose' ? 'win' : re;
+        }
+      }
+      const t1n=`${shortName(rPlayers[fi])} + ${shortName(rPlayers[pi])}`;
+      const t2n=o.filter(i=>i!==fi&&i!==pi).map(i=>shortName(rPlayers[i])).join(' + ');
+      let teams;
+      if(re==='tie'){teams=`🔄 Carryover`;}
+      else if(tp==='hog'){teams=`🐷 ${shortName(rPlayers[fi])}`;}
+      else if(re==='win'){teams=`🏆 ${t1n}`;}
+      else if(re==='lose'){teams=`🏆 ${t2n}`;}
+      else{teams=`${t1n} vs ${t2n}`;}
+      const badge=myResult==='win'?'win':myResult==='lose'?'lose':myResult==='tie'?'tie':'pend';
+      const label=myResult==='win'?'Win':myResult==='lose'?'Lose':myResult==='tie'?'Tie':'—';
+      let moneyStr='—';
+      if(myResult==='win')  moneyStr=tp==='hog'?(myIdxR===fi?`+$${(r.stake*ch.n*3).toFixed(2)}`:`+$${s}`):`+$${s}`;
+      if(myResult==='lose') moneyStr=tp==='hog'?(myIdxR===fi?`−$${(r.stake*ch.n*3).toFixed(2)}`:`−$${s}`):`−$${s}`;
+      if(myResult==='tie')  moneyStr='→ next';
+      hrHtml += `<div class="hr-row">
+        <span class="hr-num">H${h+1}${ch.n>1?' ×'+ch.n:''}</span>
+        <span class="hr-teams">${teams}</span>
+        <span class="hr-badge ${badge}">${label}</span>
+        <span class="hr-money ${myResult==='win'?'pos':myResult==='lose'?'neg':''}">${moneyStr}</span>
+      </div>`;
+    }
   }
   if (!anyResult) hrHtml = `<div class="hr-row"><span style="color:var(--tx2);font-size:14px">No holes recorded</span></div>`;
 

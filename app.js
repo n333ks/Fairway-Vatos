@@ -687,7 +687,7 @@ function renderCourses() {
 }
 
 function selectCourse(i) {
-  cIdx = i; tIdx = 2;
+  cIdx = i; tIdx = 2; teePage = 0;
   holeCount = 18; nineChoice = 'front';
   document.getElementById('setup-title').textContent = COURSES[i].name;
   document.getElementById('setup-sub').textContent   = COURSES[i].sub;
@@ -705,14 +705,53 @@ function selectCourse(i) {
 /* ════════════════════════════════
    SCREEN 2 — SETUP
 ════════════════════════════════ */
+let teePage = 0;
+
 function renderTeeScroll() {
   const c = COURSES[cIdx];
-  document.getElementById('tee-scroll').innerHTML = c.tees.map((t, i) =>
-    `<button class="tee-option${i === tIdx ? ' sel' : ''}" style="background:${t.bg};color:${t.fg}" onclick="selTee(${i})">
+  const tees = c.tees;
+  const pageSize = 3;
+  const pages = Math.ceil(tees.length / pageSize);
+  // Keep teePage in bounds
+  teePage = Math.min(teePage, pages - 1);
+  const start = teePage * pageSize;
+  const slice = tees.slice(start, start + pageSize);
+
+  const btns = slice.map((t, si) => {
+    const i = start + si;
+    return `<button class="tee-option${i === tIdx ? ' sel' : ''}" style="background:${t.bg};color:${t.fg}" onclick="selTee(${i})">
       ${t.n}<span>${t.tot.toLocaleString()} yds</span>
       ${t.rating != null ? `<span class="tee-rating">${t.rating} / ${t.slope}</span>` : ''}
-    </button>`).join('');
+    </button>`;
+  }).join('');
+
+  const dots = pages > 1 ? `<div class="tee-dots">
+    ${Array.from({length:pages}, (_, p) =>
+      `<span class="tee-dot${p === teePage ? ' on' : ''}" onclick="goTeePage(${p})"></span>`
+    ).join('')}
+  </div>` : '';
+
+  document.getElementById('tee-scroll').innerHTML =
+    `<div class="tee-page">${btns}</div>${dots}`;
+
+  // Swipe support
+  const pg = document.querySelector('#tee-scroll .tee-page');
+  if (pg && pages > 1) {
+    let sx = null;
+    pg.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, {passive:true});
+    pg.addEventListener('touchend', e => {
+      if (sx === null) return;
+      const dx = e.changedTouches[0].clientX - sx;
+      if (Math.abs(dx) > 40) {
+        if (dx < 0 && teePage < pages - 1) goTeePage(teePage + 1);
+        else if (dx > 0 && teePage > 0) goTeePage(teePage - 1);
+      }
+      sx = null;
+    }, {passive:true});
+  }
 }
+
+function goTeePage(p) { teePage = p; renderTeeScroll(); }
 
 function selTee(i) { tIdx = i; renderTeeScroll(); }
 

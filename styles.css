@@ -157,10 +157,13 @@ body {
 .course-meta-divider  { font-size:13px; color:var(--tx3) }
 
 /* ── tee picker ── */
-.tee-scroll { display:flex; gap:8px; overflow-x:auto; padding-bottom:2px }
-.tee-scroll::-webkit-scrollbar { display:none }
+.tee-scroll { display:flex; flex-direction:column; align-items:center; gap:10px; padding:0 16px 4px }
+.tee-page { display:flex; justify-content:center; gap:8px; width:100%; }
+.tee-dots { display:flex; gap:6px; justify-content:center; }
+.tee-dot { width:7px; height:7px; border-radius:50%; background:var(--sep); cursor:pointer; transition:background .2s; }
+.tee-dot.on { background:var(--blue); }
 .tee-option {
-  flex-shrink:0; padding:10px 16px; border-radius:10px;
+  flex:1; padding:10px 8px; border-radius:10px;
   font-size:14px; font-weight:600; cursor:pointer;
   border: 2.5px solid transparent;
   font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:3px;

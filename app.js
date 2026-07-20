@@ -618,6 +618,7 @@ function submitScores() {
     : `Submit your ${done}-hole round?`;
   if (!confirm(msg)) return;
   saveRound();
+  const savedId = currentRoundId;
   if (roundListener) { roundListener(); roundListener = null; }
   if (joinCode && isScorekeeper) {
     db.collection('activeRounds').doc(codeKey(joinCode)).delete().catch(() => {});
@@ -627,7 +628,10 @@ function submitScores() {
   players = []; scores = []; holes = []; touched = [];
   currentHole = 0; currentRoundId = null;
   renderHomeRecent();
-  show('sc-home');
+  // Navigate to history and open the round summary
+  showHistory().then(() => {
+    if (savedId) viewRound(savedId);
+  });
 }
 
 function endRound() {
@@ -1840,9 +1844,10 @@ function roundFromFS(obj) {
 
 function saveRound() {
   if (!players.length) return;
+  if (tIdx < 0 || tIdx >= COURSES[cIdx].tees.length) return;
   // Require at least 9 completed holes
   const ah = activeHoles();
-  const completedHoles = ah.filter(h => touched[h].every(t => t)).length;
+  const completedHoles = ah.filter(h => holeAllTouched(h)).length;
   if (completedHoles < 9) return;
 
   const money = calcMoney();

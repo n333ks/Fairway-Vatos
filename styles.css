@@ -737,17 +737,21 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   padding: 8px;
 }
 .home-hero { position: relative; }
+.home-signout-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 20px 16px 32px;
+}
 .home-signout-btn {
-  position: absolute;
-  right: 16px;
-  bottom: 12px;
-  background: none;
+  background: var(--red-bg);
   border: none;
-  color: var(--tx2);
-  font-size: 13px;
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 10px 32px;
+  border-radius: 20px;
 }
 
 /* ── home screen ── */

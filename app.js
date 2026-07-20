@@ -34,7 +34,8 @@ function toggleLoginMode() {
 }
 
 function submitLogin() {
-  const name = document.getElementById('login-name').value.trim().split(/\s+/)[0];
+  const nameRaw = document.getElementById('login-name').value.trim();
+  const name = loginMode === 'create' ? nameRaw.split(/\s+/)[0] : nameRaw;
   const pass = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-error');
   errEl.textContent = '';

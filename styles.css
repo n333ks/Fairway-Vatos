@@ -342,7 +342,8 @@ body {
   padding:2px 0; margin-bottom:6px;
 }
 .sc-row:last-of-type { margin-bottom:0 }
-.sc-name { flex:1; font-size:16px; color:var(--tx) }
+.sc-name { flex:1; font-size:16px; color:var(--tx); min-width:0 }
+.sc-ticker { display:flex; align-items:center; gap:0; flex-shrink:0; }
 .scr-members { font-size:12px; font-weight:500; margin-bottom:2px; letter-spacing:.01em }
 .scr-members-a { color:var(--blue) }
 .scr-members-b { color:var(--red) }
@@ -358,15 +359,15 @@ body {
 .sc-val { font-size:20px; font-weight:600; min-width:30px; text-align:center }
 .sc-val-empty { color:var(--tx3) }
 .sc-badge {
-  font-size:11px; font-weight:600; padding:3px 7px;
-  border-radius:6px; width:100px; text-align:center; flex-shrink:0;
+  font-size:11px; font-weight:600; padding:4px 8px;
+  border-radius:20px; width:76px; text-align:center; flex-shrink:0;
 }
 .b-albatross { background:rgba(255,214,10,0.18); color:var(--yellow) }
 .b-eagle     { background:rgba(175,82,222,0.15);  color:var(--purple) }
 .b-birdie    { background:var(--green-bg);         color:var(--green)  }
 .b-even      { background:var(--bg3);              color:var(--tx2)    }
 .b-over      { background:var(--red-bg);           color:var(--red)    }
-.b-empty     { width:100px }
+.b-empty     { width:76px }
 .best-row { font-size:12px; color:var(--tx2); text-align:right; margin-top:5px }
 .best-row b { color:var(--tx); font-weight:600 }
 

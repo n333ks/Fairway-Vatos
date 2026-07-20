@@ -1307,9 +1307,11 @@ function scoreRowHTML(h, pi, name) {
   const b   = isNull ? null : scoreBadge(sc, par);
   return `<div class="sc-row">
     <span class="sc-name">${name}</span>
-    <button class="sc-btn" onclick="adjScore(${h},${pi},-1)">−</button>
-    <span class="sc-val${isNull ? ' sc-val-empty' : ''}" id="sv-${h}-${pi}">${isNull ? '—' : sc}</span>
-    <button class="sc-btn" onclick="adjScore(${h},${pi},1)">+</button>
+    <div class="sc-ticker">
+      <button class="sc-btn" onclick="adjScore(${h},${pi},-1)">−</button>
+      <span class="sc-val${isNull ? ' sc-val-empty' : ''}" id="sv-${h}-${pi}">${isNull ? '—' : sc}</span>
+      <button class="sc-btn" onclick="adjScore(${h},${pi},1)">+</button>
+    </div>
     <span class="sc-badge ${isNull ? 'b-empty' : b.cls}" id="sb-${h}-${pi}">${isNull ? '' : b.txt}</span>
   </div>`;
 }

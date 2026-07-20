@@ -61,8 +61,12 @@ body {
 .nav-row {
   display: flex; align-items: center;
   justify-content: space-between; min-height: 36px; gap: 4px;
+  position: relative;
 }
-.nav-center { flex:1; text-align:center; min-width:0 }
+.nav-center {
+  position: absolute; left: 0; right: 0;
+  text-align: center; pointer-events: none;
+}
 .nav-title  { font-size:17px; font-weight:600; letter-spacing:-0.3px }
 .nav-large-title {
   font-size:34px; font-weight:700; letter-spacing:-0.5px;

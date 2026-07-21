@@ -2218,6 +2218,32 @@ async function showHistory() {
   }
 }
 
+function calcHistMoney(r) {
+  // Read-only: swap globals, compute money, restore — no save
+  const _cIdx=cIdx,_tIdx=tIdx,_players=players,_scores=scores,_holes=holes,
+        _gameType=gameType,_scrambleTeams=scrambleTeams,_scrambleTeamNames=scrambleTeamNames,
+        _holeCount=holeCount,_nineChoice=nineChoice,_stake=stake,_puttOff=puttOff,_touched=touched;
+  cIdx = COURSES.findIndex(x => x.name === r.courseName); if (cIdx < 0) cIdx = 0;
+  tIdx = COURSES[cIdx].tees.findIndex(t => t.n === r.tee); if (tIdx < 0) tIdx = 0;
+  players = r.players;
+  scores  = r.scores.map(h => [...h]);
+  holes   = r.holes.map(h => ({...h}));
+  gameType = r.gameType || 'hog';
+  scrambleTeams = r.scrambleTeams || [[], []];
+  scrambleTeamNames = r.scrambleTeamNames || ['', ''];
+  holeCount = r.holeCount || 18;
+  nineChoice = r.nineChoice || 'front';
+  stake = r.stake || 0;
+  puttOff = r.puttOff || null;
+  touched = scores.map(hArr => hArr.map(s => s !== null && s !== undefined));
+  recomputeAll();
+  const money = calcMoneyWithPuttOff();
+  cIdx=_cIdx; tIdx=_tIdx; players=_players; scores=_scores; holes=_holes;
+  gameType=_gameType; scrambleTeams=_scrambleTeams; scrambleTeamNames=_scrambleTeamNames;
+  holeCount=_holeCount; nineChoice=_nineChoice; stake=_stake; puttOff=_puttOff; touched=_touched;
+  return money;
+}
+
 function recalcHistRound(r) {
   // Swap globals to this round, recompute hole results + money, restore
   const _cIdx=cIdx,_tIdx=tIdx,_players=players,_scores=scores,_holes=holes,
@@ -2311,7 +2337,7 @@ function viewRound(id, backTo = 'sc-history') {
   // Rebuild the detail body
   const c   = COURSES.find(c => c.name === r.courseName) || COURSES[0];
   const par = c.par;
-  const money = r.money;
+  const money = calcHistMoney(r);
 
   // Money cards
   let html = '<div class="money-grid">';

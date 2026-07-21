@@ -664,6 +664,17 @@ function calcMoneyWithPuttOff() {
   return result;
 }
 
+function puttOffDoneLabel() {
+  if (!puttOff) return '';
+  if (gameType === 'scramble' && puttOff.winnerTeam !== undefined)
+    return scrambleTeamNames[puttOff.winnerTeam] || ('Team ' + (puttOff.winnerTeam === 0 ? 'A' : 'B'));
+  if (puttOff.winTeamIdxs)
+    return puttOff.winTeamIdxs.map(i => shortName(players[i])).join(' & ');
+  if (puttOff.winnerIdx !== undefined)
+    return pname(players[puttOff.winnerIdx]);
+  return 'Putt-off recorded';
+}
+
 function openPuttOff() {
   const info = lastHoleCarryInfo();
   if (!info) return;
@@ -1232,7 +1243,7 @@ function renderHolesBodyHog(h) {
       : needsPartner
         ? `<div class="next-hole-blocked">Choose teams above</div>`
         : isLastHole && hogCarryInfo && stake > 0
-          ? (puttOff ? `<div class="next-hole-proceed puttoff-done" onclick="openPuttOff()">⛳ Putt-off recorded — tap to change</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
+          ? (puttOff ? `<div class="next-hole-proceed puttoff-done" onclick="openPuttOff()">🏆 ${puttOffDoneLabel()} won the putt-off · tap to change</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">Proceed to Putt-Off →</div>`)
           : isLastHole ? ''
           : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
   document.getElementById('holes-body').innerHTML = `
@@ -1262,7 +1273,7 @@ function renderHolesBodyScramble(h) {
   const blocked = !ready
     ? `<div class="next-hole-blocked">Enter both team scores to continue</div>`
     : h === lastHole() && scramCarryInfo && stake > 0
-      ? (puttOff ? `<div class="next-hole-proceed puttoff-done" onclick="openPuttOff()">⛳ Putt-off recorded — tap to change</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
+      ? (puttOff ? `<div class="next-hole-proceed puttoff-done" onclick="openPuttOff()">🏆 ${puttOffDoneLabel()} won the putt-off · tap to change</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">Proceed to Putt-Off →</div>`)
       : h === lastHole() ? ''
       : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
   document.getElementById('holes-body').innerHTML = `
@@ -1297,7 +1308,7 @@ function renderHolesBodyStroke(h) {
   const blocked = !ready
     ? `<div class="next-hole-blocked">Enter all scores to continue</div>`
     : h === lastHole() && skinsCarryInfo && stake > 0
-      ? (puttOff ? `<div class="next-hole-proceed puttoff-done" onclick="openPuttOff()">⛳ Putt-off recorded — tap to change</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">⛳ Proceed to Putt-Off</div>`)
+      ? (puttOff ? `<div class="next-hole-proceed puttoff-done" onclick="openPuttOff()">🏆 ${puttOffDoneLabel()} won the putt-off · tap to change</div>` : `<div class="next-hole-proceed puttoff-btn" onclick="openPuttOff()">Proceed to Putt-Off →</div>`)
       : h === lastHole() ? ''
       : `<div class="next-hole-proceed" onclick="nextHole()">Proceed to next hole →</div>`;
   document.getElementById('holes-body').innerHTML = `

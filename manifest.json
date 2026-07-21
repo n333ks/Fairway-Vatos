@@ -9,6 +9,6 @@
   "background_color": "#F2F2F7",
   "theme_color": "#F2F2F7",
   "icons": [
-    { "src": "app_icon.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" }
+    { "src": "Photos/app_icon.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" }
   ]
 }

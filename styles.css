@@ -1020,6 +1020,17 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .payout-even { font-size: 14px; color: var(--tx2); padding: 10px 0; }
 
 /* ── history cards ── */
+.detail-game-pill {
+  display: inline-block;
+  margin: 14px 16px 0;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .history-card {
   background: var(--bg2);
   border-radius: var(--r);

@@ -2317,7 +2317,7 @@ function viewRound(id, backTo = 'sc-history') {
   currentDetailBack = backTo;
   const btn = document.getElementById('detail-back-btn');
   if (btn) {
-    btn.textContent = backTo === 'sc-home' ? '← Home' : '← History';
+    btn.textContent = backTo === 'sc-home' ? 'Home' : 'History';
     btn.onclick = () => { histEditMode = false; show(backTo); };
   }
   const editBtn = document.getElementById('detail-edit-btn');
@@ -2331,17 +2331,17 @@ function viewRound(id, backTo = 'sc-history') {
 
   const d    = new Date(r.date);
   const date = d.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
-  const gameLabel = {hog:'🐷 Hog', scramble:'⛳ Scramble', stroke:'🏌️ Skins', card:'📋 Stroke'}[r.gameType] || r.gameType;
   document.getElementById('detail-title').textContent = r.courseName;
-  document.getElementById('detail-sub').textContent   = `${gameLabel} · ${r.courseSub} · ${r.tee} · ${date}`;
+  document.getElementById('detail-sub').textContent   = `${r.courseSub} · ${r.tee} · ${date}`;
 
   // Rebuild the detail body
   const c   = COURSES.find(c => c.name === r.courseName) || COURSES[0];
   const par = c.par;
   const money = calcHistMoney(r);
 
-  // Money cards
-  let html = '<div class="money-grid">';
+  // Game type pill + money cards
+  const gameLabel = {hog:'🐷 Hog', scramble:'⛳ Scramble', stroke:'🏌️ Skins', card:'📋 Stroke'}[r.gameType] || r.gameType;
+  let html = `<div class="detail-game-pill">${gameLabel}</div><div class="money-grid">`;
   const rTeams = r.scrambleTeams;
   if (r.gameType === 'scramble' && rTeams && rTeams[0] && rTeams[0].length) {
     [0, 1].forEach(t => {

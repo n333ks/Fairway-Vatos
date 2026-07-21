@@ -1970,16 +1970,19 @@ function renderTotals() {
     let puttWinner;
     if (gameType === 'scramble' && puttOff.winnerTeam !== undefined) {
       puttWinner = scrambleTeamNames[puttOff.winnerTeam] || ('Team ' + (puttOff.winnerTeam === 0 ? 'A' : 'B'));
+    } else if (puttOff.winTeamIdxs) {
+      puttWinner = puttOff.winTeamIdxs.map(i => shortName(players[i])).join(' + ');
     } else if (puttOff.winnerIdx !== undefined) {
       puttWinner = pname(players[puttOff.winnerIdx]);
     }
     const myWon = myIdx >= 0 && (
       (gameType === 'scramble' && puttOff.winnerTeam !== undefined && scrambleTeams[puttOff.winnerTeam].includes(myIdx)) ||
+      (puttOff.winTeamIdxs && puttOff.winTeamIdxs.includes(myIdx)) ||
       (puttOff.winnerIdx !== undefined && puttOff.winnerIdx === myIdx)
     );
     const myLost = myIdx >= 0 && !myWon;
     const puttMoneyStr = myWon
-      ? `+$${(stake * puttOff.pot * 2 * (gameType==='scramble'?scrambleTeams[puttOff.winnerTeam===0?1:0].length:players.length-1)).toFixed(2)}`
+      ? `+$${(stake * puttOff.pot * 2 * (puttOff.winTeamIdxs ? puttOff.loseTeamIdxs.length : gameType==='scramble'?scrambleTeams[puttOff.winnerTeam===0?1:0].length:players.length-1)).toFixed(2)}`
       : myLost ? `−$${puttAmt}` : `$${puttAmt}`;
     hr = `<div class="hr-row hr-row--puttoff">
       <span class="hr-num">P-O</span>
@@ -2575,16 +2578,19 @@ function viewRound(id, backTo = 'sc-history') {
     let puttWinner;
     if (r.gameType === 'scramble' && rpo.winnerTeam !== undefined) {
       puttWinner = (r.scrambleTeamNames || [])[rpo.winnerTeam] || ('Team ' + (rpo.winnerTeam === 0 ? 'A' : 'B'));
+    } else if (rpo.winTeamIdxs) {
+      puttWinner = rpo.winTeamIdxs.map(i => shortName(r.players[i])).join(' + ');
     } else if (rpo.winnerIdx !== undefined) {
       puttWinner = pname(r.players[rpo.winnerIdx]);
     }
     const rMyWon = myIdxR >= 0 && (
       (r.gameType === 'scramble' && rpo.winnerTeam !== undefined && (r.scrambleTeams||[[],[]])[rpo.winnerTeam].includes(myIdxR)) ||
+      (rpo.winTeamIdxs && rpo.winTeamIdxs.includes(myIdxR)) ||
       (rpo.winnerIdx !== undefined && rpo.winnerIdx === myIdxR)
     );
     const rMyLost = myIdxR >= 0 && !rMyWon;
     const rPuttMoney = rMyWon
-      ? `+$${(rStake * rpo.pot * 2 * (r.gameType==='scramble'?(r.scrambleTeams||[[],[]])[rpo.winnerTeam===0?1:0].length:r.players.length-1)).toFixed(2)}`
+      ? `+$${(rStake * rpo.pot * 2 * (rpo.winTeamIdxs ? rpo.loseTeamIdxs.length : r.gameType==='scramble'?(r.scrambleTeams||[[],[]])[rpo.winnerTeam===0?1:0].length:r.players.length-1)).toFixed(2)}`
       : rMyLost ? `−$${puttAmt}` : `$${puttAmt}`;
     hrHtml = `<div class="hr-row hr-row--puttoff">
       <span class="hr-num">P-O</span>

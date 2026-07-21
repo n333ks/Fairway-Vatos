@@ -48,6 +48,7 @@ body {
 /* ── screens ── */
 .screen { display:none; flex-direction:column; height:100%; overflow:hidden }
 .screen.active { display:flex }
+body.auth-pending .screen { visibility:hidden }
 
 /* ── navigation bar ── */
 .nav-bar {

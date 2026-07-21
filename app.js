@@ -2908,6 +2908,7 @@ function renderHomeRecent() {
   }
 
   auth.onAuthStateChanged(user => {
+    document.body.classList.remove('auth-pending');
     currentUser = user;
     if (user) {
       const rawName = user.displayName || user.email.split('@')[0];

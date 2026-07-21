@@ -2223,7 +2223,11 @@ function recalcHistRound(r) {
   nineChoice = r.nineChoice || 'front';
   stake = r.stake || 0;
   puttOff = r.puttOff || null;
+  // touched is not saved in rounds — reconstruct from scores so recomputeAll works
+  const _touched = touched;
+  touched = scores.map(hArr => hArr.map(s => s !== null && s !== undefined));
   recomputeAll();
+  touched = _touched;
   r.holes  = holes.map(h => ({...h}));
   r.money  = calcMoneyWithPuttOff();
   cIdx=_cIdx; tIdx=_tIdx; players=_players; scores=_scores; holes=_holes;

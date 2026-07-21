@@ -2587,8 +2587,19 @@ function viewRound(id, backTo = 'sc-history') {
       (rpo.winnerIdx !== undefined && rpo.winnerIdx === myIdxR)
     );
     const rMyLost = myIdxR >= 0 && !rMyWon;
+    const rPuttWinAmt = (() => {
+      const puttPot = rStake * rpo.pot * 2;
+      if (rpo.winTeamIdxs && rpo.loseTeamIdxs)
+        return (rpo.loseTeamIdxs.length * puttPot / rpo.winTeamIdxs.length).toFixed(2);
+      if (r.gameType === 'scramble' && rpo.winnerTeam !== undefined) {
+        const loseTeam = (r.scrambleTeams||[[],[]])[rpo.winnerTeam===0?1:0];
+        const winTeam  = (r.scrambleTeams||[[],[]])[rpo.winnerTeam];
+        return (loseTeam.length * puttPot / winTeam.length).toFixed(2);
+      }
+      return (puttPot * (r.players.length - 1)).toFixed(2);
+    })();
     const rPuttMoney = rMyWon
-      ? `+$${(rStake * rpo.pot * 2 * (rpo.winTeamIdxs ? rpo.loseTeamIdxs.length : r.gameType==='scramble'?(r.scrambleTeams||[[],[]])[rpo.winnerTeam===0?1:0].length:r.players.length-1)).toFixed(2)}`
+      ? `+$${rPuttWinAmt}`
       : rMyLost ? `−$${puttAmt}` : `$${puttAmt}`;
     hrHtml = `<div class="hr-row hr-row--puttoff">
       <span class="hr-num">P-O</span>

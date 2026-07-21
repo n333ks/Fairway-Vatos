@@ -2379,53 +2379,6 @@ function viewRound(id, backTo = 'sc-history') {
   gameType = _gameType; scrambleTeams = _scrambleTeams; scrambleTeamNames = _scrambleTeamNames;
   holeCount = _holeCount; nineChoice = _nineChoice;
 
-  // Edit scores section
-  if (histEditMode) {
-    const rAH = r.holeCount === 9
-      ? (r.nineChoice === 'back' ? [9,10,11,12,13,14,15,16,17] : [0,1,2,3,4,5,6,7,8])
-      : Array.from({length:18},(_,i)=>i);
-    const rPar = (COURSES.find(c=>c.name===r.courseName)||COURSES[0]).par;
-    const isScrambleEdit = r.gameType === 'scramble' && r.scrambleTeams && r.scrambleTeams[0] && r.scrambleTeams[0].length;
-    html += `<div class="totals-section-title">Edit Scores</div>`;
-    rAH.forEach(h => {
-      html += `<div class="hist-edit-hole">
-        <div class="hist-edit-hole-hdr">
-          <span class="hist-edit-hnum">Hole ${h+1}</span>
-          <span class="hist-edit-par">Par ${rPar[h]}</span>
-        </div>`;
-      if (isScrambleEdit) {
-        [0,1].forEach(t => {
-          const cap = r.scrambleTeams[t][0];
-          const sc  = r.scores[h][cap];
-          const tName = (r.scrambleTeamNames||[])[t] || ('Team '+(t===0?'A':'B'));
-          if (sc === null || sc === undefined) return;
-          html += `<div class="hist-edit-row">
-            <span class="hist-edit-name">${tName}</span>
-            <div class="hist-edit-ctrl">
-              <button class="sc-btn" onclick="adjHistScore(${h},${cap},-1)">−</button>
-              <span class="hist-edit-val">${sc}</span>
-              <button class="sc-btn" onclick="adjHistScore(${h},${cap},1)">+</button>
-            </div>
-          </div>`;
-        });
-      } else {
-        r.players.forEach((p, pi) => {
-          const sc = r.scores[h][pi];
-          if (sc === null || sc === undefined) return;
-          html += `<div class="hist-edit-row">
-            <span class="hist-edit-name">${shortName(p)}</span>
-            <div class="hist-edit-ctrl">
-              <button class="sc-btn" onclick="adjHistScore(${h},${pi},-1)">−</button>
-              <span class="hist-edit-val">${sc}</span>
-              <button class="sc-btn" onclick="adjHistScore(${h},${pi},1)">+</button>
-            </div>
-          </div>`;
-        });
-      }
-      html += `</div>`;
-    });
-  }
-
   html += `<div class="totals-section-title">Scorecard</div>${scHtml}`;
 
   // Hole results — perspective-based, first names only
@@ -2601,7 +2554,56 @@ function viewRound(id, backTo = 'sc-history') {
   }
 
   html += `<div class="totals-section-title">Hole Results</div><div class="hole-results">${hrHtml}</div>`;
-  html += '<div style="height:8px"></div>';
+
+  // Edit scores section — placed at bottom so nothing overlaps the buttons
+  if (histEditMode) {
+    const rAH = r.holeCount === 9
+      ? (r.nineChoice === 'back' ? [9,10,11,12,13,14,15,16,17] : [0,1,2,3,4,5,6,7,8])
+      : Array.from({length:18},(_,i)=>i);
+    const rPar = (COURSES.find(c=>c.name===r.courseName)||COURSES[0]).par;
+    const isScrambleEdit = r.gameType === 'scramble' && r.scrambleTeams && r.scrambleTeams[0] && r.scrambleTeams[0].length;
+    html += `<div class="totals-section-title">Edit Scores</div><div class="list-card" style="margin:0 16px">`;
+    rAH.forEach(h => {
+      html += `<div class="hist-edit-hole">
+        <div class="hist-edit-hole-hdr">
+          <span class="hist-edit-hnum">Hole ${h+1}</span>
+          <span class="hist-edit-par">Par ${rPar[h]}</span>
+        </div>`;
+      if (isScrambleEdit) {
+        [0,1].forEach(t => {
+          const cap = r.scrambleTeams[t][0];
+          const sc  = r.scores[h][cap];
+          const tName = (r.scrambleTeamNames||[])[t] || ('Team '+(t===0?'A':'B'));
+          if (sc === null || sc === undefined) return;
+          html += `<div class="hist-edit-row">
+            <span class="hist-edit-name">${tName}</span>
+            <div class="hist-edit-ctrl">
+              <button class="sc-btn" onclick="adjHistScore(${h},${cap},-1)">−</button>
+              <span class="hist-edit-val">${sc}</span>
+              <button class="sc-btn" onclick="adjHistScore(${h},${cap},1)">+</button>
+            </div>
+          </div>`;
+        });
+      } else {
+        r.players.forEach((p, pi) => {
+          const sc = r.scores[h][pi];
+          if (sc === null || sc === undefined) return;
+          html += `<div class="hist-edit-row">
+            <span class="hist-edit-name">${shortName(p)}</span>
+            <div class="hist-edit-ctrl">
+              <button class="sc-btn" onclick="adjHistScore(${h},${pi},-1)">−</button>
+              <span class="hist-edit-val">${sc}</span>
+              <button class="sc-btn" onclick="adjHistScore(${h},${pi},1)">+</button>
+            </div>
+          </div>`;
+        });
+      }
+      html += `</div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += '<div style="height:32px"></div>';
 
   document.getElementById('history-detail-body').innerHTML = html;
 

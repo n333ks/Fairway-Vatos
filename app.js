@@ -2231,7 +2231,8 @@ function recalcHistRound(r) {
   holeCount=_holeCount; nineChoice=_nineChoice; stake=_stake; puttOff=_puttOff;
   // Persist
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
-  const idx  = hist.findIndex(h => h.id === r.id);
+  // eslint-disable-next-line eqeqeq
+  const idx  = hist.findIndex(h => h.id == r.id);
   if (idx >= 0) hist[idx] = r; else hist.unshift(r);
   localStorage.setItem('hog_rounds', JSON.stringify(hist.slice(0, 100)));
   if (currentUser) {
@@ -2252,8 +2253,10 @@ function recalcHistRound(r) {
 
 function adjHistScore(h, pi, delta) {
   const hist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
-  const r = hist.find(r => r.id === currentDetailId);
+  // eslint-disable-next-line eqeqeq
+  const r = hist.find(r => r.id == currentDetailId);
   if (!r) return;
+  if (!r.scores[h]) return;
   const cur = r.scores[h][pi];
   if (cur === null || cur === undefined) return;
   const next = Math.max(1, cur + delta);

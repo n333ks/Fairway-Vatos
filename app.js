@@ -3023,6 +3023,9 @@ function renderHomeRecent() {
   window.confirmDeleteAccount = async function() {
     if (!confirm('Permanently delete your account and all your data? This cannot be undone.')) return;
     const uid = currentUser.uid;
+
+    // Clean up all Firestore data first — auth account is deleted LAST
+    // so that if anything fails the user can try again while still authenticated
     try {
       const [rounds, friends] = await Promise.all([
         db.collection('users').doc(uid).collection('rounds').get(),
@@ -3032,17 +3035,23 @@ function renderHomeRecent() {
         ...rounds.docs.map(d => d.ref.delete()),
         ...friends.docs.map(d => d.ref.delete())
       ]);
-      // Remove this user from everyone else's friends list
       const myRefs = await db.collectionGroup('friends').where('uid', '==', uid).get();
       await Promise.all(myRefs.docs.map(d => d.ref.delete()));
       await db.collection('users').doc(uid).delete();
-      localStorage.removeItem('hog_rounds');
+    } catch (err) {
+      alert('Could not remove your data. Check your connection and try again.');
+      return;
+    }
+
+    // Firestore is clean — now delete the auth account and local data
+    localStorage.removeItem('hog_rounds');
+    try {
       await currentUser.delete();
     } catch (err) {
       if (err.code === 'auth/requires-recent-login') {
-        alert('For security, please sign out and sign back in before deleting your account.');
+        alert('For security, please sign out and sign back in, then delete your account again.');
       } else {
-        alert('Could not delete account. Try again.');
+        alert('Account data was removed but the login could not be deleted. Contact support.');
       }
     }
   };

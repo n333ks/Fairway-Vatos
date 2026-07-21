@@ -648,8 +648,9 @@ function calcMoneyWithPuttOff() {
   } else if (gameType === 'scramble' && winnerTeam !== undefined) {
     const winTeam  = scrambleTeams[winnerTeam];
     const loseTeam = scrambleTeams[winnerTeam === 0 ? 1 : 0];
-    winTeam.forEach(i  => { result[i] += stake * puttPot; });
+    const totalPot = loseTeam.length * stake * puttPot;
     loseTeam.forEach(i => { result[i] -= stake * puttPot; });
+    winTeam.forEach(i  => { result[i] += totalPot / winTeam.length; });
   } else if (winnerIdx !== undefined) {
     if (gameType === 'stroke') {
       const losers = players.map((_, i) => i).filter(i => i !== winnerIdx);

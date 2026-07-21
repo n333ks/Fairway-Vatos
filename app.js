@@ -955,8 +955,6 @@ function renderTeeScroll() {
   }
 }
 
-function goTeePage(p) { teePage = p; renderTeeScroll(); }
-
 function selTee(i) { tIdx = i; renderTeeScroll(); }
 
 function adjStake(dir) {
@@ -979,42 +977,11 @@ function selGameType(type) {
   });
   const stakeSection = document.querySelector('#sc-setup .section:has(#stake-val)');
   if (stakeSection) stakeSection.style.display = type === 'card' ? 'none' : '';
-  const teamAssign = document.getElementById('team-assignment');
-  if (teamAssign) teamAssign.style.display = 'none';
   renderPickerUI();
-}
-
-function renderTeamAssignment() {
-  const el = document.getElementById('team-assignment');
-  if (!el) return;
-  if (gameType !== 'scramble' || selectedPlayers.length !== 4) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
-  const cols = [0, 1].map(t => {
-    const cls    = t === 0 ? 'a' : 'b';
-    const btnCls = t === 0 ? 'team-a' : 'team-b';
-    const btns   = selectedPlayers.map((p, i) => scrambleTeamAssign[i] === t
-      ? `<button class="team-player-btn ${btnCls}" onclick="switchTeam(${i})">${shortName(p)}</button>`
-      : '').join('');
-    return `<div class="team-assign-col">
-      <input class="team-name-input ${cls}" value="${scrambleTeamNames[t]}"
-             oninput="setTeamName(${t}, this.value)" placeholder="Team ${t === 0 ? 'A' : 'B'}">
-      ${btns}
-    </div>`;
-  }).join('');
-  el.innerHTML = `<div class="team-assign-wrap">
-    <div class="team-assign-hdr">Name your teams — tap a player to switch sides</div>
-    <div class="team-assign-cols">${cols}</div>
-    <div class="team-assign-hint">Each team needs exactly 2 players</div>
-  </div>`;
 }
 
 function setTeamName(t, name) {
   scrambleTeamNames[t] = name;
-}
-
-function switchTeam(i) {
-  scrambleTeamAssign[i] = 1 - scrambleTeamAssign[i];
-  renderTeamAssignment();
 }
 
 async function renderPlayerInputs() {
@@ -2340,8 +2307,8 @@ function viewRound(id, backTo = 'sc-history') {
   const money = calcHistMoney(r);
 
   // Game type pill + money cards
-  const gameLabel = {hog:'🐷 Hog', scramble:'⛳ Scramble', stroke:'🏌️ Skins', card:'📋 Stroke'}[r.gameType] || r.gameType;
-  let html = `<div class="detail-game-pill">${gameLabel}</div><div class="money-grid">`;
+  const gameIconLabel = {hog:['🐷','Hog'], scramble:['⛳','Scramble'], stroke:['🏌️','Skins'], card:['📋','Stroke']}[r.gameType] || ['','r.gameType'];
+  let html = `<div class="detail-game-header"><div class="detail-game-icon">${gameIconLabel[0]}</div><div class="detail-game-name">${gameIconLabel[1]}</div></div><div class="money-grid">`;
   const rTeams = r.scrambleTeams;
   if (r.gameType === 'scramble' && rTeams && rTeams[0] && rTeams[0].length) {
     [0, 1].forEach(t => {

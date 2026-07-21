@@ -69,10 +69,7 @@ body.auth-pending .screen { visibility:hidden }
   text-align: center; pointer-events: none;
 }
 .nav-title  { font-size:17px; font-weight:600; letter-spacing:-0.3px }
-.nav-large-title {
-  font-size:34px; font-weight:700; letter-spacing:-0.5px;
-  padding: 4px 8px 4px;
-}
+
 .nav-sub { font-size:12px; color:var(--tx2); margin-top:1px }
 .nav-btn {
   background: var(--bg3); border: none; color: var(--blue);
@@ -212,24 +209,7 @@ body.auth-pending .screen { visibility:hidden }
 .sti-pill-a { background:var(--blue-bg); color:var(--blue); }
 .sti-pill-b { background:var(--green-bg); color:var(--green); }
 .sti-empty { font-size:12px; color:var(--tx3); }
-.player-pick-num {
-  position:absolute; top:5px; left:8px;
-  font-size:11px; font-weight:700; opacity:0.8;
-}
-.player-pick-order {
-  display:flex; flex-wrap:wrap; gap:8px; padding:8px 16px 14px; justify-content:center;
-}
-.pick-slot {
-  font-size:13px; font-weight:600;
-  padding:5px 14px; border-radius:20px;
-}
-.pick-slot-blue   { background:var(--blue-bg);   color:var(--blue); }
-.pick-slot-green  { background:var(--green-bg);  color:var(--green); }
-.pick-slot-orange { background:#fff3e0; color:#e65100; }
-.pick-slot-purple { background:#f3e5f5; color:#7b1fa2; }
-.player-pick-hint {
-  text-align:center; font-size:13px; color:var(--tx3); padding:4px 16px 12px;
-}
+
 
 /* ── stake stepper ── */
 .stake-display { display:flex; align-items:center; gap:10px }
@@ -275,14 +255,14 @@ body.auth-pending .screen { visibility:hidden }
   border-bottom: 0.5px solid var(--sep2);
   position:relative;
 }
-.hole-card-left  { display:flex; flex-direction:column; gap:3px }
+
 .hole-meta { font-size:13px; color:var(--tx2) }
 .carry-tag {
   background:var(--orange-bg); color:var(--orange);
   font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px;
   position:absolute; right:16px; top:50%; transform:translateY(-50%);
 }
-.hole-card-right { text-align:right }
+
 .first-tee-lbl  { font-size:11px; color:var(--tx2); text-transform:uppercase; letter-spacing:0.5px; font-weight:500; text-align:center }
 .first-tee-name { font-size:17px; font-weight:700; margin-top:2px; letter-spacing:-0.3px; text-align:center }
 
@@ -346,7 +326,7 @@ body.auth-pending .screen { visibility:hidden }
 .sc-row:last-of-type { margin-bottom:0 }
 .sc-name { font-size:16px; color:var(--tx); min-width:0 }
 .sc-ticker { display:flex; align-items:center; justify-content:center; }
-.sc-badge { justify-self:end; }
+.sc-badge { justify-self:end; font-size:11px; font-weight:600; padding:4px 8px; border-radius:20px; width:76px; text-align:center; flex-shrink:0; }
 .scr-members { font-size:12px; font-weight:500; margin-bottom:2px; letter-spacing:.01em }
 .scr-members-a { color:var(--blue) }
 .scr-members-b { color:var(--red) }
@@ -361,10 +341,7 @@ body.auth-pending .screen { visibility:hidden }
 .sc-btn:active { opacity:.6 }
 .sc-val { font-size:20px; font-weight:600; min-width:30px; text-align:center }
 .sc-val-empty { color:var(--tx3) }
-.sc-badge {
-  font-size:11px; font-weight:600; padding:4px 8px;
-  border-radius:20px; width:76px; text-align:center; flex-shrink:0;
-}
+
 .b-albatross { background:rgba(255,214,10,0.18); color:var(--yellow) }
 .b-eagle     { background:rgba(175,82,222,0.15);  color:var(--purple) }
 .b-birdie    { background:var(--green-bg);         color:var(--green)  }
@@ -563,23 +540,6 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .gtb-label { font-size:11px; font-weight:600; }
 .game-type-btn.sel { background:var(--blue); border-color:var(--blue); color:#fff; }
 
-/* ── scramble team assignment ── */
-.team-assign-wrap { padding:14px 16px 4px }
-.team-assign-hdr { font-size:13px; color:var(--tx2); margin-bottom:10px; text-align:center }
-.team-assign-cols { display:grid; grid-template-columns:1fr 1fr; gap:10px }
-.team-assign-col  { display:flex; flex-direction:column; gap:6px }
-.team-assign-label { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
-  text-align:center; padding:4px 0 6px; border-bottom:.5px solid var(--sep2); }
-.team-assign-label.a { color:var(--blue) }
-.team-assign-label.b { color:var(--green) }
-.team-player-btn {
-  padding:8px 10px; border-radius:8px; border:.5px solid var(--sep2);
-  background:var(--bg2); color:var(--tx); font-size:13px; font-weight:500;
-  font-family:inherit; cursor:pointer; text-align:center;
-}
-.team-player-btn.team-a { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); }
-.team-player-btn.team-b { background:var(--green-bg); border-color:var(--green); color:var(--green); }
-.team-assign-hint { font-size:12px; color:var(--tx3); text-align:center; padding:8px 0 4px; }
 .team-name-input {
   width:100%; box-sizing:border-box;
   background:transparent; border:none; border-bottom:1.5px solid var(--sep2);
@@ -614,16 +574,7 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .tab-btn .ti { font-size:24px; line-height:1 }
 .tab-btn.on  { color:var(--blue) }
 
-/* ── app hero banner ── */
-.app-hero {
-  background: #ffffff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px 32px;
-  flex-shrink: 0;
-  border-bottom: 0.5px solid rgba(84,84,88,0.4);
-}
+
 .hero-logo {
   width: 72%;
   height: auto;
@@ -830,12 +781,7 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .home-sec-btn:active { opacity: .7 }
 .home-sec-icon  { font-size: 30px; line-height: 1 }
 .home-sec-label { font-size: 15px; font-weight: 600; color: var(--tx) }
-.home-sec-soon  {
-  position: absolute; top: 10px; right: 10px;
-  font-size: 10px; font-weight: 600; color: var(--tx3);
-  background: var(--bg3); padding: 2px 6px; border-radius: 20px;
-  text-transform: uppercase; letter-spacing: 0.3px;
-}
+
 
 /* Recent round card */
 .home-recent-card {
@@ -928,22 +874,7 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
   text-transform: uppercase; letter-spacing: 0.5px;
   margin: 16px 16px 6px;
 }
-.sc-totals-summary {
-  margin: 8px 16px 0;
-  background: var(--bg2);
-  border-radius: var(--r);
-  overflow: hidden;
-  box-shadow: var(--shadow);
-}
-.sc-total-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 14px;
-  border-bottom: 0.5px solid var(--sep2);
-}
-.sc-total-row:last-child { border-bottom: none }
-.sc-total-name { flex: 1; font-size: 15px; font-weight: 600 }
-.sc-total-val  { font-size: 18px; font-weight: 700; min-width: 32px; text-align: right }
-.sc-total-diff { font-size: 13px; font-weight: 600; min-width: 32px; text-align: right }
+
 
 /* ── leaderboard ── */
 .lb-subtitle {
@@ -1020,15 +951,23 @@ table.sct .mini-cur      { color:var(--blue); font-weight:700 }
 .payout-even { font-size: 14px; color: var(--tx2); padding: 10px 0; }
 
 /* ── history cards ── */
-.detail-game-pill {
-  display: inline-block;
-  margin: 14px 16px 0;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background: var(--blue-bg);
+.detail-game-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 18px;
+  border-bottom: 0.5px solid var(--sep2);
+}
+.detail-game-icon {
+  font-size: 34px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.detail-game-name {
+  font-size: 20px;
+  font-weight: 700;
   color: var(--blue);
-  font-size: 13px;
-  font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 .history-card {

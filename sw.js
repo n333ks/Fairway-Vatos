@@ -1,4 +1,4 @@
-const CACHE = 'fairway-vatos-v150';
+const CACHE = 'fairway-vatos-v152';
 const PRECACHE = [
   './manifest.json',
   './icon.png',

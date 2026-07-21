@@ -27,42 +27,69 @@ function emailFor(name) {
 function toggleLoginMode() {
   loginMode = loginMode === 'signin' ? 'create' : 'signin';
   const isCreate = loginMode === 'create';
-  document.getElementById('login-submit-btn').textContent  = isCreate ? 'Create Account' : 'Sign In';
-  document.getElementById('login-toggle-btn').textContent  = isCreate ? 'Back to Sign In' : 'Create Account';
-  document.getElementById('login-subtitle').textContent    = isCreate ? 'Create your account' : 'Sign in to continue';
+  ['login-firstname','div-firstname','login-lastname','div-lastname'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isCreate ? '' : 'none';
+  });
+  document.getElementById('login-submit-btn').textContent = isCreate ? 'Create Account' : 'Sign In';
+  document.getElementById('login-toggle-btn').textContent = isCreate ? 'Back to Sign In' : 'Create Account';
+  document.getElementById('login-subtitle').textContent   = isCreate ? 'Create your account' : 'Sign in to continue';
   document.getElementById('login-error').textContent = '';
 }
 
-function submitLogin() {
-  const nameRaw = document.getElementById('login-name').value.trim();
-  const name = loginMode === 'create' ? nameRaw.split(/\s+/)[0] : nameRaw;
-  const pass = document.getElementById('login-password').value;
-  const errEl = document.getElementById('login-error');
+async function submitLogin() {
+  const username = document.getElementById('login-username').value.trim().toLowerCase();
+  const pass     = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-submit-btn');
   errEl.textContent = '';
 
-  if (!name) { errEl.textContent = 'Enter your name.'; return; }
+  if (!username) { errEl.textContent = 'Enter your username.'; return; }
   if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
 
-  const email = emailFor(name);
-  const btn   = document.getElementById('login-submit-btn');
   btn.disabled = true;
-  btn.textContent = loginMode === 'create' ? 'Creating…' : 'Signing in…';
 
-  const action = loginMode === 'create'
-    ? auth.createUserWithEmailAndPassword(email, pass).then(cred => cred.user.updateProfile({ displayName: name }))
-    : auth.signInWithEmailAndPassword(email, pass);
-
-  action.catch(err => {
-    btn.disabled = false;
-    btn.textContent = loginMode === 'create' ? 'Create Account' : 'Sign In';
-    const msg = {
-      'auth/user-not-found':    'No account found. Create one below.',
-      'auth/wrong-password':    'Incorrect password.',
-      'auth/email-already-in-use': 'Name already taken. Sign in instead.',
-      'auth/invalid-credential':   'Name or password incorrect.',
-    }[err.code] || 'Something went wrong. Try again.';
-    errEl.textContent = msg;
-  });
+  if (loginMode === 'create') {
+    const firstName = document.getElementById('login-firstname').value.trim();
+    const lastName  = document.getElementById('login-lastname').value.trim();
+    if (!firstName) { errEl.textContent = 'Enter your first name.'; btn.disabled = false; return; }
+    if (!lastName)  { errEl.textContent = 'Enter your last name.';  btn.disabled = false; return; }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      errEl.textContent = 'Username: letters, numbers, and underscores only.';
+      btn.disabled = false; return;
+    }
+    btn.textContent = 'Creating…';
+    try {
+      const taken = await db.collection('users').where('username', '==', username).get();
+      if (!taken.empty) {
+        errEl.textContent = 'Username already taken. Choose another.';
+        btn.disabled = false; btn.textContent = 'Create Account'; return;
+      }
+      const cred = await auth.createUserWithEmailAndPassword(emailFor(username), pass);
+      await cred.user.updateProfile({ displayName: firstName });
+      await db.collection('users').doc(cred.user.uid).set({
+        name: firstName, firstName, lastName, username, uid: cred.user.uid
+      });
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'Create Account';
+      errEl.textContent = {
+        'auth/email-already-in-use': 'Username already taken.',
+        'auth/weak-password': 'Password must be at least 6 characters.',
+      }[err.code] || 'Something went wrong. Try again.';
+    }
+  } else {
+    btn.textContent = 'Signing in…';
+    try {
+      await auth.signInWithEmailAndPassword(emailFor(username), pass);
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'Sign In';
+      errEl.textContent = {
+        'auth/user-not-found':     'No account found.',
+        'auth/wrong-password':     'Incorrect password.',
+        'auth/invalid-credential': 'Username or password incorrect.',
+      }[err.code] || 'Something went wrong. Try again.';
+    }
+  }
 }
 
 function logoutUser() {
@@ -989,10 +1016,15 @@ async function renderPlayerInputs() {
   const el = document.getElementById('player-inputs');
   el.innerHTML = '<div style="color:var(--tx2);font-size:14px;text-align:center;padding:12px">Loading players…</div>';
   try {
-    const snap = await db.collection('users').get();
-    knownUsers = snap.docs.map(d => d.data()).sort((a, b) => a.name.localeCompare(b.name));
+    const [selfSnap, friendsSnap] = await Promise.all([
+      db.collection('users').doc(currentUser.uid).get(),
+      db.collection('users').doc(currentUser.uid).collection('friends').get()
+    ]);
+    const selfData = selfSnap.exists ? selfSnap.data() : { name: currentUser.displayName || 'Me', uid: currentUser.uid };
+    const friends  = friendsSnap.docs.map(d => d.data()).sort((a, b) => a.name.localeCompare(b.name));
+    knownUsers = [selfData, ...friends];
   } catch (e) {
-    knownUsers = [];
+    knownUsers = currentUser ? [{ name: currentUser.displayName || 'Me', uid: currentUser.uid }] : [];
   }
   renderPickerUI();
 }
@@ -2869,31 +2901,175 @@ function renderHomeRecent() {
   const pwdInput = document.getElementById('login-password');
   if (pwdInput) {
     pwdInput.addEventListener('change', () => {
-      const name = document.getElementById('login-name').value.trim();
-      const pwd  = pwdInput.value;
-      if (name && pwd && loginMode === 'signin') submitLogin();
+      const username = document.getElementById('login-username').value.trim();
+      const pwd      = pwdInput.value;
+      if (username && pwd && loginMode === 'signin') submitLogin();
     });
   }
 
-  auth.onAuthStateChanged(user => {
+  /* ════════════════════════════════
+     FRIENDS
+  ════════════════════════════════ */
+  async function showFriends() {
+    show('sc-friends');
+    document.getElementById('friends-search').value = '';
+    document.getElementById('friends-search-results').innerHTML = '';
+    renderFriendsList();
+  }
+  window.showFriends = showFriends;
+
+  async function renderFriendsList() {
+    const el = document.getElementById('friends-list');
+    el.innerHTML = '<div class="friends-empty">Loading…</div>';
+    try {
+      const snap = await db.collection('users').doc(currentUser.uid).collection('friends').get();
+      if (snap.empty) {
+        el.innerHTML = '<div class="friends-empty">No friends yet. Search above to add some.</div>';
+        return;
+      }
+      el.innerHTML = snap.docs.map(d => {
+        const u = d.data();
+        const fullName = u.lastName ? `${u.firstName || u.name} ${u.lastName}` : (u.firstName || u.name);
+        const uname    = u.username || u.name;
+        return `<div class="friend-row">
+          <div class="friend-info">
+            <div class="friend-name">${fullName}</div>
+            <div class="friend-username">@${uname}</div>
+          </div>
+          <button class="friend-remove-btn" onclick="removeFriend('${u.uid}')">Remove</button>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      el.innerHTML = '<div class="friends-empty">Could not load friends.</div>';
+    }
+  }
+
+  let searchTimeout;
+  window.searchFriends = function(query) {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => _searchFriends(query), 300);
+  };
+
+  async function _searchFriends(query) {
+    const el = document.getElementById('friends-search-results');
+    query = query.trim().toLowerCase();
+    if (!query) { el.innerHTML = ''; return; }
+    try {
+      const [allSnap, myFriendsSnap] = await Promise.all([
+        db.collection('users').get(),
+        db.collection('users').doc(currentUser.uid).collection('friends').get()
+      ]);
+      const friendUids = new Set(myFriendsSnap.docs.map(d => d.id));
+      const results = allSnap.docs
+        .map(d => d.data())
+        .filter(u => u.uid !== currentUser.uid)
+        .filter(u => {
+          const haystack = [u.firstName, u.lastName, u.username, u.name].filter(Boolean).join(' ').toLowerCase();
+          return haystack.includes(query);
+        });
+      if (!results.length) {
+        el.innerHTML = '<div class="friends-empty">No users found.</div>';
+        return;
+      }
+      el.innerHTML = results.map(u => {
+        const isFriend = friendUids.has(u.uid);
+        const fullName = u.lastName ? `${u.firstName || u.name} ${u.lastName}` : (u.firstName || u.name);
+        const uname    = u.username || u.name;
+        return `<div class="friend-row">
+          <div class="friend-info">
+            <div class="friend-name">${fullName}</div>
+            <div class="friend-username">@${uname}</div>
+          </div>
+          ${isFriend
+            ? '<span class="friend-added-badge">Added ✓</span>'
+            : `<button class="friend-add-btn" onclick="addFriend('${u.uid}')">Add</button>`}
+        </div>`;
+      }).join('');
+    } catch (e) {
+      el.innerHTML = '<div class="friends-empty">Search failed. Try again.</div>';
+    }
+  }
+
+  window.addFriend = async function(uid) {
+    try {
+      const userDoc = await db.collection('users').doc(uid).get();
+      if (!userDoc.exists) return;
+      const data = userDoc.data();
+      await db.collection('users').doc(currentUser.uid).collection('friends').doc(uid).set({
+        name: data.firstName || data.name,
+        firstName: data.firstName || data.name,
+        lastName:  data.lastName  || '',
+        username:  data.username  || data.name,
+        uid:       data.uid
+      });
+      _searchFriends(document.getElementById('friends-search').value);
+      renderFriendsList();
+    } catch (e) {
+      alert('Could not add friend. Try again.');
+    }
+  };
+
+  window.removeFriend = async function(uid) {
+    if (!confirm('Remove this friend?')) return;
+    try {
+      await db.collection('users').doc(currentUser.uid).collection('friends').doc(uid).delete();
+      renderFriendsList();
+      _searchFriends(document.getElementById('friends-search').value);
+    } catch (e) {
+      alert('Could not remove friend. Try again.');
+    }
+  };
+
+  window.confirmDeleteAccount = async function() {
+    if (!confirm('Permanently delete your account and all your data? This cannot be undone.')) return;
+    const uid = currentUser.uid;
+    try {
+      const [rounds, friends] = await Promise.all([
+        db.collection('users').doc(uid).collection('rounds').get(),
+        db.collection('users').doc(uid).collection('friends').get()
+      ]);
+      await Promise.all([
+        ...rounds.docs.map(d => d.ref.delete()),
+        ...friends.docs.map(d => d.ref.delete())
+      ]);
+      // Remove this user from everyone else's friends list
+      const myRefs = await db.collectionGroup('friends').where('uid', '==', uid).get();
+      await Promise.all(myRefs.docs.map(d => d.ref.delete()));
+      await db.collection('users').doc(uid).delete();
+      localStorage.removeItem('hog_rounds');
+      await currentUser.delete();
+    } catch (err) {
+      if (err.code === 'auth/requires-recent-login') {
+        alert('For security, please sign out and sign back in before deleting your account.');
+      } else {
+        alert('Could not delete account. Try again.');
+      }
+    }
+  };
+
+  auth.onAuthStateChanged(async user => {
     document.body.classList.remove('auth-pending');
     currentUser = user;
     if (user) {
-      const rawName = user.displayName || user.email.split('@')[0];
-      const displayName = rawName.trim().split(/\s+/)[0];
-      // Trim to first name and register in users collection
-      if (displayName !== rawName) user.updateProfile({ displayName });
-      db.collection('users').doc(user.uid).set({ name: displayName, uid: user.uid }, { merge: true });
+      // Get user doc — new accounts already have firstName set; legacy accounts get a firstName added
+      const docRef  = db.collection('users').doc(user.uid);
+      const docSnap = await docRef.get().catch(() => null);
+      let displayName;
+      if (docSnap && docSnap.exists && docSnap.data().firstName) {
+        displayName = docSnap.data().firstName;
+      } else {
+        displayName = (user.displayName || user.email.split('@')[0]).trim().split(/\s+/)[0];
+        docRef.set({ name: displayName, firstName: displayName, uid: user.uid }, { merge: true });
+      }
+      if (user.displayName !== displayName) user.updateProfile({ displayName });
       const signoutBtn = document.getElementById('home-signout');
       if (signoutBtn) signoutBtn.title = `Signed in as ${displayName}`;
       renderCourses();
       renderHomeRecent();
       show('sc-home');
-      // Seed localStorage from Firestore on fresh install so recent round shows immediately
       const localHist = JSON.parse(localStorage.getItem('hog_rounds') || '[]');
       if (!localHist.length) {
-        db.collection('users').doc(user.uid).collection('rounds')
-          .orderBy('date', 'desc').limit(10).get()
+        docRef.collection('rounds').orderBy('date', 'desc').limit(10).get()
           .then(snap => {
             if (!snap.empty) {
               const hist = snap.docs.map(d => roundFromFS(d.data()));
@@ -2909,8 +3085,12 @@ function renderHomeRecent() {
       submitBtn.disabled = false;
       document.getElementById('login-toggle-btn').textContent = 'Create Account';
       document.getElementById('login-subtitle').textContent   = 'Sign in to continue';
-      document.getElementById('login-name').value     = '';
-      document.getElementById('login-password').value = '';
+      ['login-firstname','login-lastname','login-username','login-password'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      ['login-firstname','div-firstname','login-lastname','div-lastname'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'none';
+      });
       document.getElementById('login-error').textContent = '';
       show('sc-login');
     }

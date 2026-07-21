@@ -26,8 +26,14 @@
     <input type="text" aria-hidden="true" tabindex="-1"
            style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
     <div class="login-card" id="login-fields">
-      <input class="login-input" id="login-name" type="text" placeholder="First name"
-             autocomplete="username" autocorrect="off" autocapitalize="words">
+      <input class="login-input" id="login-firstname" type="text" placeholder="First name"
+             autocomplete="given-name" autocorrect="off" autocapitalize="words" style="display:none">
+      <div class="login-divider" id="div-firstname" style="display:none"></div>
+      <input class="login-input" id="login-lastname" type="text" placeholder="Last name"
+             autocomplete="family-name" autocorrect="off" autocapitalize="words" style="display:none">
+      <div class="login-divider" id="div-lastname" style="display:none"></div>
+      <input class="login-input" id="login-username" type="text" placeholder="Username"
+             autocomplete="username" autocorrect="off" autocapitalize="none">
       <div class="login-divider"></div>
       <input class="login-input" id="login-password" type="password" placeholder="Password"
              autocomplete="current-password">
@@ -69,6 +75,10 @@
       <button class="home-sec-btn" onclick="openJoinModal()">
         <div class="home-sec-icon">🤝</div>
         <div class="home-sec-label">Join Round</div>
+      </button>
+      <button class="home-sec-btn home-sec-btn-full" onclick="showFriends()">
+        <div class="home-sec-icon">👥</div>
+        <div class="home-sec-label">Friends</div>
       </button>
     </div>
 
@@ -290,6 +300,38 @@
     <div class="join-code-display" id="joincode-display">---</div>
     <div class="overlay-sub" style="margin-top:4px">Others tap Join Round and enter this code</div>
     <button class="primary-btn" style="margin-top:20px" onclick="dismissJoincodeOverlay()">Start Playing</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN — FRIENDS
+════════════════════════════════ -->
+<div class="screen" id="sc-friends">
+  <div class="nav">
+    <button class="nav-btn" onclick="show('sc-home')">Home</button>
+    <div class="nav-col">
+      <div class="nav-title">Friends</div>
+    </div>
+    <div style="width:70px"></div>
+  </div>
+  <div class="content" style="padding-bottom:40px">
+    <div class="section">
+      <div class="section-header">Add a Friend</div>
+      <div class="friends-search-wrap">
+        <input id="friends-search" class="friends-search-input" type="search"
+               placeholder="Search by name or username"
+               autocorrect="off" autocapitalize="none"
+               oninput="searchFriends(this.value)">
+      </div>
+      <div id="friends-search-results"></div>
+    </div>
+    <div class="section">
+      <div class="section-header">My Friends</div>
+      <div id="friends-list"></div>
+    </div>
+    <div style="padding:8px 16px 0; text-align:center">
+      <button class="friends-delete-btn" onclick="confirmDeleteAccount()">Delete My Account</button>
+    </div>
   </div>
 </div>
 

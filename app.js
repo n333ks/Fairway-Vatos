@@ -2305,8 +2305,8 @@ function viewRound(id, backTo = 'sc-history') {
 
   const d    = new Date(r.date);
   const date = d.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
-  document.getElementById('detail-title').textContent = r.courseSub;
-  document.getElementById('detail-sub').textContent   = `${r.tee} · ${date}`;
+  document.getElementById('detail-title').textContent = r.courseName;
+  document.getElementById('detail-sub').textContent   = `${r.courseSub} · ${r.tee} · ${date}`;
 
   // Rebuild the detail body
   const c   = COURSES.find(c => c.name === r.courseName) || COURSES[0];
